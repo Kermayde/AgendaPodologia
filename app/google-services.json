@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1034911473715",
+    "project_id": "agendapodologia-97e39",
+    "storage_bucket": "agendapodologia-97e39.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1034911473715:android:1e3d645c6a63e7220d4346",
+        "android_client_info": {
+          "package_name": "com.flores.agendapodologia"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCz1aip--bWBcVxebfmR5TMaz-mxdWttFU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
