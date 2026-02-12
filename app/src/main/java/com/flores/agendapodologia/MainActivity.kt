@@ -1,32 +1,56 @@
 package com.flores.agendapodologia
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import com.flores.agendapodologia.data.repository.AgendaRepositoryImpl
+import com.flores.agendapodologia.ui.screens.AddAppointmentScreen
+import com.flores.agendapodologia.ui.screens.HomeScreen
+import com.flores.agendapodologia.viewmodel.HomeViewModel
 import com.google.firebase.Firebase
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.firestore
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            val db = Firebase.firestore
-            val testData = hashMapOf(
-                "mensaje" to "Hola Firebase desde la clínica",
-                "fecha" to FieldValue.serverTimestamp()
-            )
 
-            db.collection("pruebas").add(testData)
-                .addOnSuccessListener {
-                    Log.d("FIREBASE", "¡Conexión exitosa! ID: ${it.id}")
+        // Inyección de dependencias simple
+        val db = Firebase.firestore
+        val repository = AgendaRepositoryImpl(db)
+        val viewModel = HomeViewModel(repository)
+
+        setContent {
+
+            // Asegúrate de tener un Theme creado, si no, quita "AgendaPodologiaTheme"
+            MaterialTheme {
+                // Estado simple para controlar navegación
+                var currentScreen by remember { mutableStateOf("home") }
+
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    when (currentScreen) {
+                        "home" -> {
+                            HomeScreen(
+                                viewModel = viewModel,
+                                onAddClick = { currentScreen = "add_appointment" } // Necesitas agregar este callback a HomeScreen
+                            )
+                        }
+                        "add_appointment" -> {
+                            AddAppointmentScreen(
+                                viewModel = viewModel,
+                                onBack = { currentScreen = "home" }
+                            )
+                        }
+                    }
                 }
-                .addOnFailureListener { e ->
-                    Log.w("FIREBASE", "Error de conexión", e)
-                }
+            }
         }
     }
 }
