@@ -235,8 +235,14 @@ fun AddAppointmentScreen(
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 // Selector de FECHA
+                val dateDisplay = remember(selectedDateMillis) {
+                    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                    // Forzamos al formateador a interpretar los milisegundos como UTC
+                    sdf.timeZone = TimeZone.getTimeZone("UTC")
+                    sdf.format(Date(selectedDateMillis))
+                }
                 OutlinedTextField(
-                    value = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(selectedDateMillis)),
+                    value = dateDisplay,
                     onValueChange = {},
                     label = { Text("Fecha") },
                     readOnly = true,
@@ -292,24 +298,33 @@ fun AddAppointmentScreen(
             // BOTÓN GUARDAR
             Button(
                 onClick = {
-                    // Combinar fecha y hora
-                    val calendar = Calendar.getInstance().apply {
+                    // 1. Creamos un calendario temporal en UTC para leer los milisegundos del DatePicker
+                    val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
                         timeInMillis = selectedDateMillis
-                        set(Calendar.HOUR_OF_DAY, selectedHour)
-                        set(Calendar.MINUTE, selectedMinute)
                     }
 
+                    // 2. Creamos el calendario local que se guardará, usando los datos del UTC
+                    val calendar = Calendar.getInstance().apply {
+                        set(Calendar.YEAR, utcCalendar.get(Calendar.YEAR))
+                        set(Calendar.MONTH, utcCalendar.get(Calendar.MONTH))
+                        set(Calendar.DAY_OF_MONTH, utcCalendar.get(Calendar.DAY_OF_MONTH))
+
+                        // Aquí aplicas la hora y minutos que seleccionaste en el TimePicker
+                        set(Calendar.HOUR_OF_DAY, selectedHour)
+                        set(Calendar.MINUTE, selectedMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+
+                    // 3. Ahora enviamos al ViewModel el tiempo correcto
                     viewModel.scheduleAppointment(
                         patientName = patientNameQuery,
                         patientPhone = phone,
                         selectedPatient = selectedPatient,
-                        date = calendar.timeInMillis,
+                        date = calendar.timeInMillis, // Este ya tiene la fecha local correcta
                         service = serviceType,
                         podiatrist = podiatrist,
-                        onSuccess = {
-                            // Solo volvemos atrás si se guardó correctamente
-                            onBack()
-                        }
+                        onSuccess = { onBack() }
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),

@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.ui.components.AppointmentCard
 import com.flores.agendapodologia.ui.components.PatientItem
 import com.flores.agendapodologia.viewmodel.HomeViewModel
@@ -37,7 +38,8 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onAddClick: () -> Unit
+    onAddClick: () -> Unit,
+    onAppointmentClick: (Appointment) -> Unit,
 ) {
     // 1. Observamos las Citas y la Fecha seleccionada
     val appointments by viewModel.appointments.collectAsState()
@@ -128,9 +130,7 @@ fun HomeScreen(
                     items(appointments) { appointment ->
                         AppointmentCard(
                             appointment = appointment,
-                            onClick = {
-                                // Aquí navegaremos al detalle más adelante
-                            }
+                            onClick = { onAppointmentClick(appointment) }
                         )
                     }
                 }

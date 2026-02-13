@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.flores.agendapodologia.data.repository.AgendaRepositoryImpl
 import com.flores.agendapodologia.ui.screens.AddAppointmentScreen
+import com.flores.agendapodologia.ui.screens.AppointmentDetailScreen
 import com.flores.agendapodologia.ui.screens.HomeScreen
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import com.google.firebase.Firebase
@@ -39,11 +40,21 @@ class MainActivity : ComponentActivity() {
                         "home" -> {
                             HomeScreen(
                                 viewModel = viewModel,
-                                onAddClick = { currentScreen = "add_appointment" } // Necesitas agregar este callback a HomeScreen
+                                onAddClick = { currentScreen = "add_appointment" },
+                                onAppointmentClick = { appointment ->  // <--- NUEVO CALLBACK
+                                    viewModel.selectAppointment(appointment)
+                                    currentScreen = "detail_appointment"
+                                }
                             )
                         }
                         "add_appointment" -> {
                             AddAppointmentScreen(
+                                viewModel = viewModel,
+                                onBack = { currentScreen = "home" }
+                            )
+                        }
+                        "detail_appointment" -> { // <--- NUEVA PANTALLA
+                            AppointmentDetailScreen(
                                 viewModel = viewModel,
                                 onBack = { currentScreen = "home" }
                             )

@@ -87,6 +87,31 @@ class HomeViewModel(
         }
     }
 
+    // Cita que estamos viendo actualmente en detalle
+    private val _currentDetailAppointment = MutableStateFlow<Appointment?>(null)
+    val currentDetailAppointment = _currentDetailAppointment.asStateFlow()
+
+    // La cita histórica (anterior) para mostrar referencia
+    private val _previousAppointment = MutableStateFlow<Appointment?>(null)
+    val previousAppointment = _previousAppointment.asStateFlow()
+
+    fun selectAppointment(appointment: Appointment) {
+        _currentDetailAppointment.value = appointment
+        // Al seleccionar, cargamos automáticamente su historial
+        viewModelScope.launch {
+            val prev = repository.getPreviousAppointment(appointment.patientId, appointment.date)
+            _previousAppointment.value = prev
+        }
+    }
+
+    fun saveNotes(notes: String, onSuccess: () -> Unit) {
+        val current = _currentDetailAppointment.value ?: return
+        viewModelScope.launch {
+            repository.updateAppointmentNotes(current.id, notes)
+                .onSuccess { onSuccess() }
+        }
+    }
+
     // Función para guardar Cita (y paciente si es nuevo)
     fun scheduleAppointment(
         patientName: String,
