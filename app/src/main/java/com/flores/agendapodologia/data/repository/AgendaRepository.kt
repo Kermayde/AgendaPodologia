@@ -1,5 +1,6 @@
 package com.flores.agendapodologia.data.repository
 
+import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.Patient
 import kotlinx.coroutines.flow.Flow
 
@@ -11,4 +12,8 @@ interface AgendaRepository {
     fun getPatients(): Flow<List<Patient>>
 
     suspend fun updatePatient(patient: Patient): Result<Boolean>
+
+    suspend fun scheduleAppointment(appointment: Appointment, patient: Patient): Result<Boolean>
+
+    fun getAppointmentsForDate(date: Long): Flow<List<Appointment>>
 }

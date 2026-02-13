@@ -87,24 +87,63 @@ fun AddAppointmentScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             if (selectedPatient == null) {
-                // MODO 1: BUSCADOR (Si no hay nadie seleccionado)
+                // MODO 1: BUSCADOR / NUEVO REGISTRO
+
+                // 1. El Buscador (Nombre)
                 PatientAutocomplete(
                     patientsFound = filteredPatients,
                     onQueryChanged = { query ->
                         patientNameQuery = query
                         viewModel.searchPatient(query)
+                        // Si borra el nombre, limpiamos el teléfono también para evitar datos huérfanos
+                        if (query.isEmpty()) phone = ""
                     },
                     onPatientSelected = { patient ->
                         selectedPatient = patient
-                        // Al seleccionar, actualizamos los campos de texto
                         patientNameQuery = patient.name
                         phone = patient.phone
-                        // Por defecto, NO editamos. Se bloquea.
                         isEditingExisting = false
-                        viewModel.searchPatient("") // Limpiar lista
+                        viewModel.searchPatient("")
                     },
-                    onClearSelection = { /* ... */ }
+                    onClearSelection = {
+                        selectedPatient = null
+                        phone = ""
+                    }
                 )
+
+                // 2. Campo de Teléfono (SOLO aparece si escribió un nombre y NO seleccionó a nadie)
+                // Usamos AnimatedVisibility para que se vea elegante al aparecer
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = patientNameQuery.isNotEmpty()
+                ) {
+                    Column {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedTextField(
+                            value = phone,
+                            onValueChange = { phone = it },
+                            label = { Text("Teléfono (Nuevo Paciente)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            // Teclado numérico
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                            ),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                // Un color sutil para indicar que es un registro nuevo
+                                focusedBorderColor = MaterialTheme.colorScheme.secondary,
+                                focusedLabelColor = MaterialTheme.colorScheme.secondary
+                            )
+                        )
+
+                        Text(
+                            text = "Se registrará como paciente nuevo",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                        )
+                    }
+                }
             } else {
                 // MODO 2: PACIENTE SELECCIONADO (VISTA BLOQUEADA / EDICIÓN)
 
@@ -253,11 +292,28 @@ fun AddAppointmentScreen(
             // BOTÓN GUARDAR
             Button(
                 onClick = {
-                    // Combinar fecha y hora en un solo Timestamp
-                    onBack() // Regresar a la lista
+                    // Combinar fecha y hora
+                    val calendar = Calendar.getInstance().apply {
+                        timeInMillis = selectedDateMillis
+                        set(Calendar.HOUR_OF_DAY, selectedHour)
+                        set(Calendar.MINUTE, selectedMinute)
+                    }
+
+                    viewModel.scheduleAppointment(
+                        patientName = patientNameQuery,
+                        patientPhone = phone,
+                        selectedPatient = selectedPatient,
+                        date = calendar.timeInMillis,
+                        service = serviceType,
+                        podiatrist = podiatrist,
+                        onSuccess = {
+                            // Solo volvemos atrás si se guardó correctamente
+                            onBack()
+                        }
+                    )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = patientNameQuery.isNotEmpty() && phone.isNotEmpty() // Validación básica
+                enabled = patientNameQuery.isNotEmpty() && phone.isNotEmpty()
             ) {
                 Text("Agendar Cita")
             }

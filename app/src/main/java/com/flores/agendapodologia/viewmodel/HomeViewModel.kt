@@ -1,5 +1,6 @@
 package com.flores.agendapodologia.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flores.agendapodologia.data.repository.AgendaRepository
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Date
 
 class HomeViewModel(
     private val repository: AgendaRepository
@@ -58,49 +60,71 @@ class HomeViewModel(
         }
     }
 
+    // Estado para la fecha seleccionada en el calendario (Por defecto: Hoy)
+    private val _selectedDate = MutableStateFlow(System.currentTimeMillis())
+    val selectedDate = _selectedDate.asStateFlow()
+
+    // Estado para las citas de ESE día
+    private val _appointments = MutableStateFlow<List<Appointment>>(emptyList())
+    val appointments = _appointments.asStateFlow()
+
+    init {
+        // Al iniciar, cargamos las citas de hoy
+        loadAppointmentsForDate(System.currentTimeMillis())
+    }
+
+    fun changeDate(newDate: Long) {
+        _selectedDate.value = newDate
+        loadAppointmentsForDate(newDate)
+    }
+
+    private fun loadAppointmentsForDate(date: Long) {
+        viewModelScope.launch {
+            // Cancelamos la suscripción anterior automáticamente al llamar a collect de nuevo
+            repository.getAppointmentsForDate(date).collect { list ->
+                _appointments.value = list
+            }
+        }
+    }
+
     // Función para guardar Cita (y paciente si es nuevo)
     fun scheduleAppointment(
         patientName: String,
         patientPhone: String,
-        selectedPatient: Patient?, // Pasamos el objeto entero, no solo el ID
-        date: Long,
+        selectedPatient: Patient?,
+        date: Long, // Recibimos Long del DatePicker
         service: String,
-        podiatrist: String
+        podiatrist: String,
+        onSuccess: () -> Unit // Callback para avisar a la UI que terminó
     ) {
         viewModelScope.launch {
-            var finalPatientId = selectedPatient?.id
-            val finalPatientName = patientName.trim()
+            // Preparamos el objeto Paciente (sea nuevo o el que venía seleccionado)
+            // Si selectedPatient es null, creamos uno nuevo con ID vacío
+            val patientToSave = selectedPatient?.copy(
+                name = patientName,
+                phone = patientPhone
+            ) ?: Patient(
+                id = "", // ID vacío indica al repo que es nuevo
+                name = patientName,
+                phone = patientPhone
+            )
 
-            if (finalPatientId == null) {
-                // CASO 1: PACIENTE NUEVO
-                val newPatient = Patient(name = finalPatientName, phone = patientPhone)
-                // Nota: Aquí necesitaríamos refactorizar addPatient para que devuelva el ID generado
-                // Por ahora asumimos que se crea.
-                repository.addPatient(newPatient)
-                // (En un sistema real, recuperarías el ID aquí)
-            } else {
-                // CASO 2: PACIENTE EXISTENTE
-                // Verificamos si hubo cambios en sus datos
-                if (selectedPatient.name != finalPatientName || selectedPatient.phone != patientPhone) {
-                    // ¡El usuario editó los datos! Actualizamos la ficha maestra
-                    val updatedPatient = selectedPatient.copy(
-                        name = finalPatientName,
-                        phone = patientPhone
-                    )
-                    repository.updatePatient(updatedPatient)
-                }
-            }
-
-            // CASO 3: CREAR LA CITA
-            val newAppointment = Appointment(
-                patientId = finalPatientId ?: "temp_id", // Ojo con esto en prod
-                patientName = finalPatientName, // Guardamos el nombre ACTUALIZADO en la cita
+            // Preparamos el objeto Cita
+            val appointment = Appointment(
                 podiatristName = podiatrist,
                 serviceType = service,
-                date = date,
-                // ...
+                date = Date(date), // Convertimos Long a Date aquí
+                status = "PENDIENTE"
             )
-            // repository.addAppointment(newAppointment)
+
+            repository.scheduleAppointment(appointment, patientToSave)
+                .onSuccess {
+                    onSuccess() // ¡Éxito! Cerramos la pantalla
+                }
+                .onFailure {
+                    // Aquí podrías poner un estado de error para mostrar un SnackBar
+                    Log.e("ViewModel", "Error al agendar", it)
+                }
         }
     }
 }
