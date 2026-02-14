@@ -21,4 +21,6 @@ interface AgendaRepository {
     suspend fun getLastAppointments(patientId: String, currentAppointmentDate: Date): List<Appointment>
 
     suspend fun updateAppointmentNotes(appointmentId: String, notes: String): Result<Boolean>
+
+    suspend fun getAppointmentById(id: String): Appointment?
 }

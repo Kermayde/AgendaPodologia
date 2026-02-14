@@ -87,6 +87,21 @@ class HomeViewModel(
         }
     }
 
+    // ...
+    fun loadAppointmentDetails(appointmentId: String) {
+        viewModelScope.launch {
+            // 1. Buscamos la cita por ID
+            val appointment = repository.getAppointmentById(appointmentId)
+            _currentDetailAppointment.value = appointment
+
+            // 2. Si la encontramos, cargamos su historial (igual que antes)
+            if (appointment != null) {
+                val history = repository.getLastAppointments(appointment.patientId, appointment.date)
+                _lastAppointments.value = history
+            }
+        }
+    }
+
     // Cita que estamos viendo actualmente en detalle
     private val _currentDetailAppointment = MutableStateFlow<Appointment?>(null)
     val currentDetailAppointment = _currentDetailAppointment.asStateFlow()

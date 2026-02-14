@@ -178,4 +178,13 @@ class AgendaRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun getAppointmentById(id: String): Appointment? {
+        return try {
+            val doc = db.collection("appointments").document(id).get().await()
+            doc.toObject(Appointment::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
