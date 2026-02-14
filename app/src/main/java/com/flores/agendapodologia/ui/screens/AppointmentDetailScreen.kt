@@ -27,7 +27,8 @@ fun AppointmentDetailScreen(
     onBack: () -> Unit
 ) {
     val appointment by viewModel.currentDetailAppointment.collectAsState()
-    val previousAppointment by viewModel.previousAppointment.collectAsState()
+    // Observamos la lista
+    val historyList by viewModel.lastAppointments.collectAsState()
 
     // Estado local para las notas que estás escribiendo
     var currentNotes by remember { mutableStateOf(appointment?.notes ?: "") }
@@ -68,39 +69,55 @@ fun AppointmentDetailScreen(
                     .verticalScroll(rememberScrollState())
             ) {
 
-                // SECCIÓN 1: Contexto Histórico
-                Text("Historial Reciente", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                // SECCIÓN 1: Historial Reciente
+                Text("Historial Reciente (Últimas 3 visitas)",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                if (previousAppointment != null) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.List, null, tint = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.width(8.dp))
+                if (historyList.isNotEmpty()) {
+                    // Iteramos sobre la lista para mostrar cada cita pasada
+                    historyList.forEach { pastAppointment ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp), // Separación entre tarjetas
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.List, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = dateFormat.format(pastAppointment.date),
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Cita del ${dateFormat.format(previousAppointment!!.date)}",
-                                    fontWeight = FontWeight.Bold
+                                    text = pastAppointment.notes.ifEmpty { "Sin notas." },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 3 // Limitamos líneas para que no ocupe toda la pantalla
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Atendió: ${pastAppointment.podiatristName}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.align(Alignment.End),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = previousAppointment!!.notes.ifEmpty { "Sin notas registradas." },
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = "Atendido por: ${previousAppointment!!.podiatristName}",
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.align(Alignment.End)
-                            )
                         }
                     }
                 } else {
-                    // Si es la primera vez que viene
+                    // Caso vacío
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.LightGray.copy(alpha = 0.3f))
+                        colors = CardDefaults.cardColors(containerColor = Color.LightGray.copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = "No hay visitas anteriores registradas.",

@@ -92,15 +92,15 @@ class HomeViewModel(
     val currentDetailAppointment = _currentDetailAppointment.asStateFlow()
 
     // La cita histórica (anterior) para mostrar referencia
-    private val _previousAppointment = MutableStateFlow<Appointment?>(null)
-    val previousAppointment = _previousAppointment.asStateFlow()
+    private val _lastAppointments = MutableStateFlow<List<Appointment>>(emptyList())
+    val lastAppointments = _lastAppointments.asStateFlow()
 
     fun selectAppointment(appointment: Appointment) {
         _currentDetailAppointment.value = appointment
-        // Al seleccionar, cargamos automáticamente su historial
         viewModelScope.launch {
-            val prev = repository.getPreviousAppointment(appointment.patientId, appointment.date)
-            _previousAppointment.value = prev
+            // Llamamos a la nueva función
+            val history = repository.getLastAppointments(appointment.patientId, appointment.date)
+            _lastAppointments.value = history
         }
     }
 

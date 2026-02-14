@@ -18,7 +18,7 @@ interface AgendaRepository {
 
     fun getAppointmentsForDate(date: Long): Flow<List<Appointment>>
 
-    suspend fun getPreviousAppointment(patientId: String, currentAppointmentDate: Date): Appointment?
+    suspend fun getLastAppointments(patientId: String, currentAppointmentDate: Date): List<Appointment>
 
     suspend fun updateAppointmentNotes(appointmentId: String, notes: String): Result<Boolean>
 }

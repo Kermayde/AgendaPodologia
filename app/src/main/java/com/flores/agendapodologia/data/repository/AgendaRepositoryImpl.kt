@@ -147,25 +147,24 @@ class AgendaRepositoryImpl(
         awaitClose { subscription.remove() }
     }
 
-    override suspend fun getPreviousAppointment(patientId: String, currentAppointmentDate: Date): Appointment? {
+    override suspend fun getLastAppointments(patientId: String, currentAppointmentDate: Date): List<Appointment> {
         return try {
-            // Buscamos citas de este paciente, ANTES de la fecha actual, ordenadas por fecha descendente (la más reciente primero)
             val snapshot = db.collection("appointments")
                 .whereEqualTo("patientId", patientId)
-                .whereLessThan("date", currentAppointmentDate) // Clave: Solo anteriores a hoy
+                .whereLessThan("date", currentAppointmentDate)
                 .orderBy("date", Query.Direction.DESCENDING)
-                .limit(1) // Solo queremos la inmediata anterior
+                .limit(3) // <--- AQUI CAMBIAMOS A 3
                 .get()
                 .await()
 
             if (!snapshot.isEmpty) {
-                snapshot.documents[0].toObject(Appointment::class.java)
+                snapshot.toObjects(Appointment::class.java)
             } else {
-                null
+                emptyList()
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            null
+            emptyList()
         }
     }
 
