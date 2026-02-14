@@ -2,6 +2,7 @@ package com.flores.agendapodologia.data.repository
 
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.Patient
+import com.flores.agendapodologia.model.PatientStatus
 import kotlinx.coroutines.flow.Flow
 import java.util.Date
 
@@ -23,4 +24,8 @@ interface AgendaRepository {
     suspend fun updateAppointmentNotes(appointmentId: String, notes: String): Result<Boolean>
 
     suspend fun getAppointmentById(id: String): Appointment?
+
+    suspend fun getPatientById(id: String): Patient?
+    suspend fun deletePatientAndAppointments(patientId: String): Result<Boolean>
+    suspend fun updatePatientStatus(patientId: String, status: PatientStatus): Result<Boolean>
 }

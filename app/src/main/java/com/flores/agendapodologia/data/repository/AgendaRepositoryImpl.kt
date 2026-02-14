@@ -3,6 +3,7 @@ package com.flores.agendapodologia.data.repository
 import android.util.Log
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.Patient
+import com.flores.agendapodologia.model.PatientStatus
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
@@ -185,6 +186,48 @@ class AgendaRepositoryImpl(
             doc.toObject(Appointment::class.java)
         } catch (e: Exception) {
             null
+        }
+    }
+
+    // Metodos para eliminar pacientes y citas:
+    override suspend fun getPatientById(id: String): Patient? {
+        return try {
+            db.collection("patients").document(id).get().await().toObject(Patient::class.java)
+        } catch (e: Exception) { null }
+    }
+
+    override suspend fun updatePatientStatus(patientId: String, status: PatientStatus): Result<Boolean> {
+        return try {
+            db.collection("patients").document(patientId).update("status", status).await()
+            Result.success(true)
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    override suspend fun deletePatientAndAppointments(patientId: String): Result<Boolean> {
+        return try {
+            val batch = db.batch()
+
+            // 1. Buscar todas las citas del paciente
+            val appointmentsSnapshot = db.collection("appointments")
+                .whereEqualTo("patientId", patientId)
+                .get()
+                .await()
+
+            // 2. Agregar eliminación de cada cita al lote (Batch)
+            for (document in appointmentsSnapshot.documents) {
+                batch.delete(document.reference)
+            }
+
+            // 3. Agregar eliminación del paciente al lote
+            val patientRef = db.collection("patients").document(patientId)
+            batch.delete(patientRef)
+
+            // 4. Ejecutar todo junto
+            batch.commit().await()
+
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

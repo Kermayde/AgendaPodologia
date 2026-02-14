@@ -25,6 +25,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.flores.agendapodologia.ui.navigation.AppScreens
+import com.flores.agendapodologia.ui.screens.PatientDetailScreen
+import com.flores.agendapodologia.ui.screens.PatientDirectoryScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,64 +38,67 @@ class MainActivity : ComponentActivity() {
         val viewModel = HomeViewModel(repository)
 
         setContent {
-            // El controlador de navegación: el cerebro que sabe dónde estamos
             val navController = rememberNavController()
+            // Estado para saber en qué pantalla estamos (opcional, para colorear iconos del BottomBar si tuvieras)
 
             MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                NavHost(navController = navController, startDestination = AppScreens.Home.route) {
 
-                    // DEFINICIÓN DEL GRAFO DE NAVEGACIÓN
-                    NavHost(
-                        navController = navController,
-                        startDestination = AppScreens.Home.route
-                    ) {
+                    // 1. HOME
+                    composable(AppScreens.Home.route) {
+                        HomeScreen(
+                            viewModel = viewModel,
+                            onAddClick = { navController.navigate(AppScreens.AddAppointment.route) },
+                            onAppointmentClick = { appt -> navController.navigate(AppScreens.AppointmentDetail.createRoute(appt.id)) },
+                            onOpenDirectory = { navController.navigate(AppScreens.PatientDirectory.route) } // <--- Botón nuevo en Home
+                        )
+                    }
 
-                        // 1. PANTALLA HOME
-                        composable(route = AppScreens.Home.route) {
-                            HomeScreen(
-                                viewModel = viewModel,
-                                onAddClick = {
-                                    navController.navigate(AppScreens.AddAppointment.route)
-                                },
-                                onAppointmentClick = { appointment ->
-                                    // Navegamos pasando el ID en la ruta
-                                    navController.navigate(
-                                        AppScreens.AppointmentDetail.createRoute(appointment.id)
-                                    )
-                                }
-                            )
-                        }
+                    // 2. DIRECTORIO (Lista de Pacientes)
+                    composable(AppScreens.PatientDirectory.route) {
+                        PatientDirectoryScreen(
+                            viewModel = viewModel,
+                            onPatientClick = { patient ->
+                                navController.navigate(AppScreens.PatientDetail.createRoute(patient.id))
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
 
-                        // 2. PANTALLA AGREGAR CITA
-                        composable(route = AppScreens.AddAppointment.route) {
-                            AddAppointmentScreen(
-                                viewModel = viewModel,
-                                onBack = {
-                                    navController.popBackStack() // Volver atrás
-                                }
-                            )
-                        }
+                    // 3. DETALLE PACIENTE (WhatsApp, Bloqueo, etc.)
+                    composable(
+                        route = AppScreens.PatientDetail.route,
+                        arguments = listOf(navArgument("patientId") { type = NavType.StringType })
+                    ) { entry ->
+                        val id = entry.arguments?.getString("patientId")
+                        LaunchedEffect(id) { id?.let { viewModel.loadPatientDetail(it) } }
 
-                        // 3. PANTALLA DETALLE CITA (Recibe ID)
-                        composable(
-                            route = AppScreens.AppointmentDetail.route,
-                            arguments = listOf(navArgument("appointmentId") { type = NavType.StringType })
-                        ) { backStackEntry ->
-                            // Extraemos el ID de la ruta
-                            val appointmentId = backStackEntry.arguments?.getString("appointmentId")
+                        PatientDetailScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
 
-                            // Le decimos al ViewModel que cargue los datos
-                            LaunchedEffect(appointmentId) {
-                                appointmentId?.let { viewModel.loadAppointmentDetails(it) }
-                            }
+                    // 4. AGREGAR CITA
+                    composable(AppScreens.AddAppointment.route) {
+                        AddAppointmentScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
 
-                            AppointmentDetailScreen(
-                                viewModel = viewModel,
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
+                    // 5. DETALLE CITA
+                    composable(
+                        route = AppScreens.AppointmentDetail.route,
+                        arguments = listOf(navArgument("appointmentId") { type = NavType.StringType })
+                    ) { entry ->
+                        val id = entry.arguments?.getString("appointmentId")
+                        LaunchedEffect(id) { id?.let { viewModel.loadAppointmentDetails(it) } }
 
-                        // Aquí agregaremos el Directorio de Pacientes en el futuro...
+                        AppointmentDetailScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                 }
             }

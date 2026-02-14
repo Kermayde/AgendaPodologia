@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,6 +41,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onAddClick: () -> Unit,
     onAppointmentClick: (Appointment) -> Unit,
+    onOpenDirectory: () -> Unit
 ) {
     // 1. Observamos las Citas y la Fecha seleccionada
     val appointments by viewModel.appointments.collectAsState()
@@ -56,7 +58,12 @@ fun HomeScreen(
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                    ),
+                    actions = {
+                        IconButton(onClick = onOpenDirectory) {
+                            Icon(Icons.Default.Person, "Directorio") // Necesitas importar PersonSearch
+                        }
+                    }
                 )
 
                 // --- BARRA DE FECHAS (NUEVO) ---

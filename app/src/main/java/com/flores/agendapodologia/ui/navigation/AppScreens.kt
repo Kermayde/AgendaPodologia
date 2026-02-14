@@ -1,17 +1,17 @@
 package com.flores.agendapodologia.ui.navigation
 
 sealed class AppScreens(val route: String) {
-    // Pantallas simples
+    // Pantallas principales
     object Home : AppScreens("home")
+    object PatientDirectory : AppScreens("patient_directory") // <--- NUEVA
     object AddAppointment : AppScreens("add_appointment")
 
-    // Pantalla con argumentos (ID de la cita)
+    // Pantallas con argumentos (Detalle de Cita y Detalle de Paciente)
     object AppointmentDetail : AppScreens("appointment_detail/{appointmentId}") {
-        // Función auxiliar para construir la ruta con el ID real
         fun createRoute(appointmentId: String) = "appointment_detail/$appointmentId"
     }
 
-    // Futuras pantallas (Directorio)
-    object PatientDirectory : AppScreens("patient_directory")
-    // object PatientDetail : AppScreens("patient_detail/{patientId}")
+    object PatientDetail : AppScreens("patient_detail/{patientId}") { // <--- NUEVA
+        fun createRoute(patientId: String) = "patient_detail/$patientId"
+    }
 }

@@ -6,9 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.flores.agendapodologia.data.repository.AgendaRepository
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.Patient
+import com.flores.agendapodologia.model.PatientStatus
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Date
 
@@ -165,6 +169,67 @@ class HomeViewModel(
                     // Aquí podrías poner un estado de error para mostrar un SnackBar
                     Log.e("ViewModel", "Error al agendar", it)
                 }
+        }
+    }
+
+    // --- ESTADOS PARA DIRECTORIO ---
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    // Lista filtrada derivada de la lista original (_patients) y el query
+    // Usamos combine para reaccionar a cambios en cualquiera de los dos
+    val directoryList = _patients.combine(_searchQuery) { patients, query ->
+        if (query.isBlank()) {
+            patients
+        } else {
+            patients.filter {
+                it.name.contains(query, ignoreCase = true) ||
+                        it.phone.contains(query)
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Paciente seleccionado para ver detalle
+    private val _currentPatient = MutableStateFlow<Patient?>(null)
+    val currentPatient = _currentPatient.asStateFlow()
+
+    // Citas históricas de ESE paciente (reutilizamos la lógica del historial)
+    // Usamos la misma variable _lastAppointments o creamos una _patientHistory específica si quieres cargar TODAS
+
+    // --- FUNCIONES ---
+    fun onSearchQueryChanged(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun loadPatientDetail(patientId: String) {
+        viewModelScope.launch {
+            val patient = repository.getPatientById(patientId)
+            _currentPatient.value = patient
+            // Cargar sus últimas 20 citas, por ejemplo
+            if (patient != null) {
+                // Aquí podrías crear un método en repo que traiga TODAS las citas, no solo 3
+                val history = repository.getLastAppointments(patientId, Date()) // Reutilizando la de 3 por ahora
+                _lastAppointments.value = history
+            }
+        }
+    }
+
+    fun togglePatientStatus(patient: Patient) {
+        val newStatus = if (patient.status == PatientStatus.BLOCKED) PatientStatus.ACTIVE else PatientStatus.BLOCKED
+        viewModelScope.launch {
+            repository.updatePatientStatus(patient.id, newStatus)
+                .onSuccess {
+                    // Actualizamos el estado local para que la UI cambie rápido
+                    _currentPatient.value = patient.copy(status = newStatus)
+                }
+        }
+    }
+
+    fun deleteCurrentPatient(onSuccess: () -> Unit) {
+        val patient = _currentPatient.value ?: return
+        viewModelScope.launch {
+            repository.deletePatientAndAppointments(patient.id)
+                .onSuccess { onSuccess() }
         }
     }
 }
