@@ -230,4 +230,63 @@ class AgendaRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun updatePatientAndHistory(patient: Patient): Result<Boolean> {
+        return try {
+            db.runTransaction { transaction ->
+                // 1. Referencia al Paciente
+                val patientRef = db.collection("patients").document(patient.id)
+
+                // 2. Leemos el dato actual para ver si cambió el nombre
+                // (Importante para decidir si gastamos recursos actualizando citas)
+                val snapshot = transaction.get(patientRef)
+                val oldName = snapshot.getString("name") ?: ""
+
+                // 3. Actualizamos al Paciente
+                transaction.set(patientRef, patient)
+
+                // 4. Si el nombre cambió, actualizamos TODAS sus citas (Lógica pesada pero necesaria)
+                // Nota: En una transacción de Firestore, las lecturas deben ir antes que las escrituras.
+                // PERO, Firestore no permite Querys dentro de transacciones fácilmente si no son por ID.
+                // ESTRATEGIA: Para no complicar la transacción con queries masivos,
+                // haremos esto en dos pasos: Primero el paciente, y luego un Batch para las citas.
+                // Para fines de esta app (tráfico bajo), es seguro hacerlo fuera de la transacción principal
+                // o usar un BatchWrite aparte.
+
+            }.await()
+
+            // PASO 2: Actualización en Cascada (Fuera de la transacción del documento único)
+            // Esto corre después de que se aseguró la actualización del paciente.
+            val batch = db.batch()
+
+            val appointmentsSnapshot = db.collection("appointments")
+                .whereEqualTo("patientId", patient.id)
+                .get()
+                .await()
+
+            var needsBatchCommit = false
+
+            for (doc in appointmentsSnapshot.documents) {
+                // Solo actualizamos si el nombre o teléfono en la cita son diferentes a los nuevos
+                val docName = doc.getString("patientName")
+                val docPhone = doc.getString("patientPhone")
+
+                if (docName != patient.name || docPhone != patient.phone) {
+                    batch.update(doc.reference, mapOf(
+                        "patientName" to patient.name,
+                        "patientPhone" to patient.phone
+                    ))
+                    needsBatchCommit = true
+                }
+            }
+
+            if (needsBatchCommit) {
+                batch.commit().await()
+            }
+
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

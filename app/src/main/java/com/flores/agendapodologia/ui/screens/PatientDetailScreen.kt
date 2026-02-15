@@ -9,7 +9,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Warning
@@ -38,19 +41,60 @@ fun PatientDetailScreen(
     // Estado para el diálogo de confirmación de borrado
     var showDeleteDialog by remember { mutableStateOf(false) }
 
+    // ESTADO DE EDICIÓN
+    var isEditing by remember { mutableStateOf(false) }
+
+    // Estados temporales para los campos de texto (buffer de edición)
+    var editName by remember { mutableStateOf("") }
+    var editPhone by remember { mutableStateOf("") }
+
+    // Sincronizar buffer cuando entramos al modo edición
+    LaunchedEffect(isEditing) {
+        if (isEditing && patient != null) {
+            editName = patient!!.name
+            editPhone = patient!!.phone
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Detalle del Paciente") },
+                title = { Text(if (isEditing) "Editando Paciente" else "Detalle del Paciente") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                    // Si estamos editando, el botón atrás funciona como "Cancelar"
+                    IconButton(onClick = {
+                        if (isEditing) isEditing = false else onBack()
+                    }) {
+                        Icon(
+                            imageVector = if (isEditing) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
                     }
                 },
                 actions = {
-                    // Botón Eliminar (Peligroso)
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, "Eliminar", tint = MaterialTheme.colorScheme.error)
+                    if (!isEditing) {
+                        // MODO VISUALIZACIÓN: Botón Editar y Eliminar
+                        IconButton(onClick = { isEditing = true }) {
+                            Icon(Icons.Default.Edit, "Editar")
+                        }
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Default.Delete, "Eliminar", tint = MaterialTheme.colorScheme.error)
+                        }
+                    } else {
+                        // MODO EDICIÓN: Botón Guardar
+                        IconButton(onClick = {
+                            if (patient != null) {
+                                val updatedPatient = patient!!.copy(
+                                    name = editName.trim(),
+                                    phone = editPhone.trim()
+                                )
+                                viewModel.updatePatient(updatedPatient) {
+                                    isEditing = false // Salir del modo edición al terminar
+                                }
+                            }
+                        }) {
+                            Icon(Icons.Default.Check, "Guardar Cambios", tint = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
             )
@@ -59,12 +103,9 @@ fun PatientDetailScreen(
         if (patient == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         } else {
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .padding(16.dp)
-            ) {
-                // 1. ENCABEZADO (Datos Personales)
+            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+
+                // 1. TARJETA DE DATOS (Ahora mutante)
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = if (patient!!.status == PatientStatus.BLOCKED)
@@ -78,17 +119,44 @@ fun PatientDetailScreen(
                         modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = patient!!.name,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = patient!!.phone,
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        if (isEditing) {
+                            // --- CAMPOS EDITABLES ---
+                            OutlinedTextField(
+                                value = editName,
+                                onValueChange = { editName = it },
+                                label = { Text("Nombre Completo") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = editPhone,
+                                onValueChange = { editPhone = it },
+                                label = { Text("Teléfono") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface
+                                )
+                            )
+                        } else {
+                            // --- VISTA SOLO LECTURA (Lo que ya tenías) ---
+                            Text(
+                                text = patient!!.name,
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = patient!!.phone,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
 
+                        // Badge de Lista Negra (Siempre visible si aplica)
                         if (patient!!.status == PatientStatus.BLOCKED) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Badge(containerColor = MaterialTheme.colorScheme.error) {
@@ -100,60 +168,69 @@ fun PatientDetailScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 2. ACCIONES RÁPIDAS (Llamar / WhatsApp)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    // Botón LLAMAR
-                    Button(onClick = {
-                        val intent = Intent(Intent.ACTION_DIAL).apply {
-                            data = Uri.parse("tel:${patient!!.phone}")
-                        }
-                        try { context.startActivity(intent) } catch (e: Exception) {
-                            Toast.makeText(context, "No se puede llamar", Toast.LENGTH_SHORT).show()
-                        }
-                    }) {
-                        Icon(Icons.Default.Call, null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Llamar")
-                    }
-
-                    // Botón WHATSAPP
-                    Button(
-                        onClick = {
-                            val phone = formatPhoneForWhatsapp(patient!!.phone)
-                            val message = URLEncoder.encode("Hola ${patient!!.name}, le escribimos de la Clínica Podológica.", "UTF-8")
-                            val url = "https://api.whatsapp.com/send?phone=$phone&text=$message"
-
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                data = Uri.parse(url)
+                // Ocultamos botones de acción rápida mientras se edita para no distraer
+                if (!isEditing) {
+                    // 2. ACCIONES RÁPIDAS (Llamar / WhatsApp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        // Botón LLAMAR
+                        Button(onClick = {
+                            val intent = Intent(Intent.ACTION_DIAL).apply {
+                                data = Uri.parse("tel:${patient!!.phone}")
                             }
                             try { context.startActivity(intent) } catch (e: Exception) {
-                                Toast.makeText(context, "WhatsApp no instalado", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "No se puede llamar", Toast.LENGTH_SHORT).show()
                             }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))
-                    ) {
-                        Icon(Icons.Default.Email, null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("WhatsApp")
+                        }) {
+                            Icon(Icons.Default.Call, null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Llamar")
+                        }
+
+                        // Botón WHATSAPP
+                        Button(
+                            onClick = {
+                                val phone = formatPhoneForWhatsapp(patient!!.phone)
+                                val message = URLEncoder.encode("Hola ${patient!!.name}, le escribimos de la Clínica Podológica.", "UTF-8")
+                                val url = "https://api.whatsapp.com/send?phone=$phone&text=$message"
+
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    data = Uri.parse(url)
+                                }
+                                try { context.startActivity(intent) } catch (e: Exception) {
+                                    Toast.makeText(context, "WhatsApp no instalado", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))
+                        ) {
+                            Icon(Icons.Default.Email, null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("WhatsApp")
+                        }
                     }
-                }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 3. BLOQUEO / LISTA NEGRA
-                OutlinedButton(
-                    onClick = { viewModel.togglePatientStatus(patient!!) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = if (patient!!.status == PatientStatus.BLOCKED) Color.Gray else MaterialTheme.colorScheme.error
+                    // 3. BLOQUEO / LISTA NEGRA
+                    OutlinedButton(
+                        onClick = { viewModel.togglePatientStatus(patient!!) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = if (patient!!.status == PatientStatus.BLOCKED) Color.Gray else MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Default.Warning, null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (patient!!.status == PatientStatus.BLOCKED) "Desbloquear Paciente" else "Reportar (Lista Negra)")
+                    }
+                } else {
+                    Text(
+                        text = "⚠️ Al cambiar el nombre, se actualizará en todas las citas históricas.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     )
-                ) {
-                    Icon(Icons.Default.Warning, null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (patient!!.status == PatientStatus.BLOCKED) "Desbloquear Paciente" else "Reportar (Lista Negra)")
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

@@ -142,32 +142,59 @@ class HomeViewModel(
         onSuccess: () -> Unit // Callback para avisar a la UI que terminó
     ) {
         viewModelScope.launch {
-            // Preparamos el objeto Paciente (sea nuevo o el que venía seleccionado)
-            // Si selectedPatient es null, creamos uno nuevo con ID vacío
-            val patientToSave = selectedPatient?.copy(
-                name = patientName,
-                phone = patientPhone
-            ) ?: Patient(
-                id = "", // ID vacío indica al repo que es nuevo
-                name = patientName,
-                phone = patientPhone
-            )
+            val finalName = patientName.trim()
+            val finalPhone = patientPhone.trim()
 
-            // Preparamos el objeto Cita
+            // Variable para el paciente que se enviará a la transacción de la cita
+            var patientToSave: Patient
+
+            if (selectedPatient == null) {
+                // CASO 1: PACIENTE NUEVO
+                // Creamos objeto con ID vacío para que el Repo sepa que debe crearlo
+                patientToSave = Patient(
+                    id = "",
+                    name = finalName,
+                    phone = finalPhone
+                )
+            } else {
+                // CASO 2: PACIENTE EXISTENTE
+                // Verificamos si cambió algún dato
+                if (selectedPatient.name != finalName || selectedPatient.phone != finalPhone) {
+
+                    // Preparamos el objeto actualizado
+                    val updatedPatient = selectedPatient.copy(
+                        name = finalName,
+                        phone = finalPhone
+                    )
+
+                    // ¡AQUÍ ESTÁ EL AJUSTE!
+                    // Primero ejecutamos la actualización en cascada para corregir el historial antiguo
+                    repository.updatePatientAndHistory(updatedPatient)
+
+                    // Usamos el paciente actualizado para la nueva cita
+                    patientToSave = updatedPatient
+                } else {
+                    // No hubo cambios, usamos el original
+                    patientToSave = selectedPatient
+                }
+            }
+
+            // CASO 3: CREAR LA NUEVA CITA
+            // (Esto usa la transacción que ya teníamos para asegurar que se guarde Cita + Paciente)
             val appointment = Appointment(
                 podiatristName = podiatrist,
                 serviceType = service,
-                date = Date(date), // Convertimos Long a Date aquí
+                date = Date(date),
                 status = "PENDIENTE"
             )
 
             repository.scheduleAppointment(appointment, patientToSave)
                 .onSuccess {
-                    onSuccess() // ¡Éxito! Cerramos la pantalla
+                    onSuccess() // Cierra la pantalla
                 }
                 .onFailure {
-                    // Aquí podrías poner un estado de error para mostrar un SnackBar
-                    Log.e("ViewModel", "Error al agendar", it)
+                    // Aquí podrías manejar el error
+                    it.printStackTrace()
                 }
         }
     }
@@ -230,6 +257,20 @@ class HomeViewModel(
         viewModelScope.launch {
             repository.deletePatientAndAppointments(patient.id)
                 .onSuccess { onSuccess() }
+        }
+    }
+
+    fun updatePatient(patient: Patient, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            repository.updatePatientAndHistory(patient)
+                .onSuccess {
+                    // Actualizamos el estado local para reflejar cambios inmediatos
+                    _currentPatient.value = patient
+                    onSuccess()
+                }
+                .onFailure {
+                    // Manejar error (Toast o Log)
+                }
         }
     }
 }

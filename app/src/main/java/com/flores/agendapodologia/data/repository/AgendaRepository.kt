@@ -9,23 +9,16 @@ import java.util.Date
 interface AgendaRepository {
     // Usamos 'suspend' para operaciones de una sola vez (como guardar)
     suspend fun addPatient(patient: Patient): Result<Boolean>
-
     // Usamos 'Flow' para recibir datos en tiempo real (si tu madre agrega uno, te aparece a ti)
     fun getPatients(): Flow<List<Patient>>
-
     suspend fun updatePatient(patient: Patient): Result<Boolean>
-
     suspend fun scheduleAppointment(appointment: Appointment, patient: Patient): Result<Boolean>
-
     fun getAppointmentsForDate(date: Long): Flow<List<Appointment>>
-
     suspend fun getLastAppointments(patientId: String, currentAppointmentDate: Date): List<Appointment>
-
     suspend fun updateAppointmentNotes(appointmentId: String, notes: String): Result<Boolean>
-
     suspend fun getAppointmentById(id: String): Appointment?
-
     suspend fun getPatientById(id: String): Patient?
     suspend fun deletePatientAndAppointments(patientId: String): Result<Boolean>
     suspend fun updatePatientStatus(patientId: String, status: PatientStatus): Result<Boolean>
+    suspend fun updatePatientAndHistory(patient: Patient): Result<Boolean>
 }
