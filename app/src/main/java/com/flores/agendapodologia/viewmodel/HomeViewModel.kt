@@ -8,6 +8,7 @@ import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.AppointmentStatus
 import com.flores.agendapodologia.model.Patient
 import com.flores.agendapodologia.model.PatientStatus
+import com.flores.agendapodologia.model.PaymentMethod
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -311,6 +312,28 @@ class HomeViewModel(
                 // Nunca ha pagado o es nuevo
                 _warrantyStatus.value = WarrantyState(isActive = false)
             }
+        }
+    }
+
+    fun finishAppointment(
+        isPaid: Boolean,
+        paymentMethod: PaymentMethod,
+        onSuccess: () -> Unit
+    ) {
+        val currentAppt = _currentDetailAppointment.value ?: return
+
+        viewModelScope.launch {
+            repository.finishAppointment(currentAppt.id, isPaid, paymentMethod)
+                .onSuccess {
+                    // Actualizamos el estado local para que se refleje inmediatamente en la UI
+                    _currentDetailAppointment.value = currentAppt.copy(
+                        status = AppointmentStatus.FINALIZADA,
+                        isPaid = isPaid,
+                        paymentMethod = paymentMethod,
+                        completedAt = Date()
+                    )
+                    onSuccess()
+                }
         }
     }
 }

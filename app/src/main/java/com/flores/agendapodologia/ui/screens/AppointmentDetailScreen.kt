@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.flores.agendapodologia.model.AppointmentStatus
+import com.flores.agendapodologia.ui.components.FinishAppointmentDialog
 import com.flores.agendapodologia.ui.components.WarrantyBanner
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.text.SimpleDateFormat
@@ -37,6 +39,8 @@ fun AppointmentDetailScreen(
 
     // Formateador de fechas
     val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    // Estado para mostrar el diálogo
+    var showFinishDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -59,6 +63,17 @@ fun AppointmentDetailScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            // Solo mostramos el botón si la cita NO está finalizada
+            if (appointment?.status == AppointmentStatus.PENDIENTE) {
+                ExtendedFloatingActionButton(
+                    onClick = { showFinishDialog = true },
+                    icon = { Icon(Icons.Default.Check, null) },
+                    text = { Text("Terminar Cita") },
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     ) { padding ->
         if (appointment == null) {
@@ -179,5 +194,17 @@ fun AppointmentDetailScreen(
                 }
             }
         }
+    }
+    if (showFinishDialog) {
+        FinishAppointmentDialog(
+            isWarrantyActive = warrantyState.isActive && appointment?.serviceType == "Correcciones", // Solo sugerimos si es corrección
+            onDismiss = { showFinishDialog = false },
+            onConfirm = { isPaid, method ->
+                viewModel.finishAppointment(isPaid, method) {
+                    showFinishDialog = false
+                    // Opcional: mostrar un Toast o volver atrás
+                }
+            }
+        )
     }
 }

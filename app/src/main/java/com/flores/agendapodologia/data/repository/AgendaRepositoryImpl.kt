@@ -2,8 +2,10 @@ package com.flores.agendapodologia.data.repository
 
 import android.util.Log
 import com.flores.agendapodologia.model.Appointment
+import com.flores.agendapodologia.model.AppointmentStatus
 import com.flores.agendapodologia.model.Patient
 import com.flores.agendapodologia.model.PatientStatus
+import com.flores.agendapodologia.model.PaymentMethod
 import com.flores.agendapodologia.util.ServiceConstants
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -363,6 +365,25 @@ class AgendaRepositoryImpl(
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+
+    override suspend fun finishAppointment(appointmentId: String, isPaid: Boolean, paymentMethod: PaymentMethod): Result<Boolean> {
+        return try {
+            val updates = mapOf(
+                "status" to AppointmentStatus.FINALIZADA, // Usamos el Enum
+                "paid" to isPaid, // Usamos la clave "paid" (por tu corrección anterior)
+                "paymentMethod" to paymentMethod,
+                "completedAt" to java.util.Date() // Fecha y hora exacta del cierre
+            )
+
+            db.collection("appointments").document(appointmentId)
+                .update(updates)
+                .await()
+
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

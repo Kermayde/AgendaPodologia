@@ -5,16 +5,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flores.agendapodologia.model.Appointment
+import com.flores.agendapodologia.model.AppointmentStatus
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -27,6 +31,11 @@ fun AppointmentCard(
     val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
     val timeString = timeFormatter.format(appointment.date)
 
+    // Estilo condicional
+    val isFinished = appointment.status == AppointmentStatus.FINALIZADA
+    val cardAlpha = if (isFinished) 0.6f else 1f // Más transparente si terminó
+    val textDecoration = if (isFinished) TextDecoration.LineThrough else null
+
     // Color distintivo según el podólogo (Visualmente útil)
     val podiatristColor = if (appointment.podiatristName == "Carlos")
         MaterialTheme.colorScheme.primaryContainer
@@ -38,13 +47,13 @@ fun AppointmentCard(
             .fillMaxWidth()
             .padding(vertical = 4.dp, horizontal = 16.dp)
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isFinished) 0.dp else 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isFinished) Color.LightGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
+        )
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.padding(12.dp).alpha(cardAlpha), // Aplicamos transparencia
             verticalAlignment = Alignment.CenterVertically
         ) {
             // COLUMNA 1: HORA
@@ -80,7 +89,8 @@ fun AppointmentCard(
                 Text(
                     text = appointment.patientName,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    textDecoration = textDecoration // Tachado si terminó
                 )
                 Text(
                     text = appointment.serviceType,
@@ -100,6 +110,11 @@ fun AppointmentCard(
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold
                 )
+            }
+            // Icono de Check si terminó
+            if (isFinished) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(Icons.Default.CheckCircle, null, tint = Color.Gray)
             }
         }
     }
