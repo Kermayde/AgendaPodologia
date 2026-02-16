@@ -244,7 +244,13 @@ fun PatientDetailScreen(
                         ListItem(
                             headlineContent = { Text(java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(appointment.date)) },
                             supportingContent = { Text(appointment.serviceType) },
-                            trailingContent = { Text(appointment.status, style = MaterialTheme.typography.labelSmall) },
+                            trailingContent = {
+                                // CORRECCIÓN: Agregamos .name para convertirlo a String
+                                Text(
+                                    text = appointment.status.name,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
                             leadingContent = { Icon(Icons.Default.List, null) }
                         )
                     }

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.Patient
 import com.flores.agendapodologia.ui.components.DatePickerModal
 import com.flores.agendapodologia.ui.components.PatientAutocomplete
+import com.flores.agendapodologia.ui.components.ServiceSelector
 import com.flores.agendapodologia.ui.components.TimePickerModal
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.text.SimpleDateFormat
@@ -283,7 +284,15 @@ fun AddAppointmentScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3. PODÓLOGO (Radio Buttons)
+            // 3. TIPO DE SERVICIO (Nuevo Componente)
+            ServiceSelector(
+                selectedService = serviceType,
+                onServiceSelected = { serviceType = it }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 4. PODÓLOGO (Radio Buttons)
             Text("Asignar a", style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = podiatrist == "Carlos", onClick = { podiatrist = "Carlos" })

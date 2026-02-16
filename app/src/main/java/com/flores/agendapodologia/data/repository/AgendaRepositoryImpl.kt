@@ -4,6 +4,7 @@ import android.util.Log
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.Patient
 import com.flores.agendapodologia.model.PatientStatus
+import com.flores.agendapodologia.util.ServiceConstants
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
@@ -287,6 +288,81 @@ class AgendaRepositoryImpl(
             Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    // Busca la última cita PAGADA que sea válida para garantía (Quiropodia o Corrección)
+//    override suspend fun getLastPaidWarrantyAppointment(patientId: String): Appointment? {
+//        return try {
+//            val snapshot = db.collection("appointments")
+//                .whereEqualTo("patientId", patientId)
+//                .whereEqualTo("isPaid", true) // Solo nos interesan las que pagó
+//                .whereIn("serviceType", ServiceConstants.WARRANTY_TRIGGER_SERVICES) // Quiropodia o Correcciones
+//                .orderBy("date", Query.Direction.DESCENDING) // La más reciente
+//                .limit(1)
+//                .get()
+//                .await()
+//
+//            if (!snapshot.isEmpty) {
+//                snapshot.documents[0].toObject(Appointment::class.java)
+//            } else {
+//                null
+//            }
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//            null
+//        }
+//    }
+//    override suspend fun getLastPaidWarrantyAppointment(patientId: String): Appointment? {
+//        return try {
+//            // 1. Traemos TODAS las citas pagadas de este paciente, ordenadas por fecha
+//            val snapshot = db.collection("appointments")
+//                .whereEqualTo("patientId", patientId)
+//                .whereEqualTo("isPaid", true)
+//                .orderBy("date", Query.Direction.DESCENDING)
+//                .get()
+//                .await()
+//
+//            if (!snapshot.isEmpty) {
+//                // 2. Filtramos en MEMORIA (Kotlin)
+//                // Buscamos la primera que sea Quiropodia o Correcciones
+//                val appointments = snapshot.toObjects(Appointment::class.java)
+//
+//                appointments.firstOrNull { appointment ->
+//                    appointment.serviceType in ServiceConstants.WARRANTY_TRIGGER_SERVICES
+//                }
+//            } else {
+//                null
+//            }
+//        } catch (e: Exception) {
+//            Log.e("REPO", "Error buscando garantía: ${e.message}") // Agrega Log para ver errores
+//            e.printStackTrace()
+//            null
+//        }
+//    }
+
+    override suspend fun getLastPaidWarrantyAppointment(patientId: String): Appointment? {
+        return try {
+            val snapshot = db.collection("appointments")
+                .whereEqualTo("patientId", patientId)
+                .whereEqualTo("paid", true) // <--- CAMBIO: "paid" en lugar de "isPaid"
+                .orderBy("date", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            if (!snapshot.isEmpty) {
+                val appointments = snapshot.toObjects(Appointment::class.java)
+
+                // Filtramos en memoria (Quiropodia o Correcciones)
+                appointments.firstOrNull { appointment ->
+                    appointment.serviceType in ServiceConstants.WARRANTY_TRIGGER_SERVICES
+                }
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 }

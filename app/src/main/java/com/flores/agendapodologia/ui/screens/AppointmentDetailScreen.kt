@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.flores.agendapodologia.ui.components.WarrantyBanner
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -27,6 +28,7 @@ fun AppointmentDetailScreen(
     onBack: () -> Unit
 ) {
     val appointment by viewModel.currentDetailAppointment.collectAsState()
+    val warrantyState by viewModel.warrantyStatus.collectAsState() // <--- Observamos el estado
     // Observamos la lista
     val historyList by viewModel.lastAppointments.collectAsState()
 
@@ -68,6 +70,18 @@ fun AppointmentDetailScreen(
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
+                // 1. Banner de Garantía (Lo ponemos al principio para que sea evidente)
+                WarrantyBanner(warrantyState = warrantyState)
+
+                // 2. Si la cita actual es de "Correcciones" y hay garantía, avisamos que es GRATIS
+                if (appointment?.serviceType == "Correcciones" && warrantyState.isActive) {
+                    Text(
+                        text = "✨ Esta cita no debería tener costo por garantía.",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
 
                 // SECCIÓN 1: Historial Reciente
                 Text("Historial Reciente (Últimas 3 visitas)",

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flores.agendapodologia.data.repository.AgendaRepository
 import com.flores.agendapodologia.model.Appointment
+import com.flores.agendapodologia.model.AppointmentStatus
 import com.flores.agendapodologia.model.Patient
 import com.flores.agendapodologia.model.PatientStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +15,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import java.util.Date
+import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 
 class HomeViewModel(
     private val repository: AgendaRepository
@@ -94,15 +98,21 @@ class HomeViewModel(
     // ...
     fun loadAppointmentDetails(appointmentId: String) {
         viewModelScope.launch {
-            // 1. Buscamos la cita por ID
+            //_isLoading.value = true // Opcional, si tienes estado de carga
+
+            // 1. Buscamos la cita fresca por ID
             val appointment = repository.getAppointmentById(appointmentId)
             _currentDetailAppointment.value = appointment
 
-            // 2. Si la encontramos, cargamos su historial (igual que antes)
             if (appointment != null) {
+                // 2. Cargamos su historial
                 val history = repository.getLastAppointments(appointment.patientId, appointment.date)
                 _lastAppointments.value = history
+
+                // 3. ¡IMPORTANTE! Verificamos la garantía (Esto estaba en la función muerta)
+                checkWarranty(appointment.patientId)
             }
+            //_isLoading.value = false
         }
     }
 
@@ -113,15 +123,6 @@ class HomeViewModel(
     // La cita histórica (anterior) para mostrar referencia
     private val _lastAppointments = MutableStateFlow<List<Appointment>>(emptyList())
     val lastAppointments = _lastAppointments.asStateFlow()
-
-    fun selectAppointment(appointment: Appointment) {
-        _currentDetailAppointment.value = appointment
-        viewModelScope.launch {
-            // Llamamos a la nueva función
-            val history = repository.getLastAppointments(appointment.patientId, appointment.date)
-            _lastAppointments.value = history
-        }
-    }
 
     fun saveNotes(notes: String, onSuccess: () -> Unit) {
         val current = _currentDetailAppointment.value ?: return
@@ -185,7 +186,7 @@ class HomeViewModel(
                 podiatristName = podiatrist,
                 serviceType = service,
                 date = Date(date),
-                status = "PENDIENTE"
+                status = AppointmentStatus.PENDIENTE
             )
 
             repository.scheduleAppointment(appointment, patientToSave)
@@ -273,4 +274,50 @@ class HomeViewModel(
                 }
         }
     }
+
+    // Estado de la garantía del paciente actual
+    private val _warrantyStatus = MutableStateFlow(WarrantyState())
+    val warrantyStatus = _warrantyStatus.asStateFlow()
+
+    // Función para calcular si tiene garantía vigente
+    fun checkWarranty(patientId: String) {
+        viewModelScope.launch {
+            // 1. Buscamos la última cita PAGADA que genera garantía
+            val lastPaid = repository.getLastPaidWarrantyAppointment(patientId)
+
+            if (lastPaid != null) {
+                val today = Date()
+                val diffInMillies = abs(today.time - lastPaid.date.time)
+                val diffInDays = TimeUnit.DAYS.convert(diffInMillies, TimeUnit.MILLISECONDS)
+
+                // La regla de los 15 días
+                if (diffInDays <= 15) {
+                    val expiration = Calendar.getInstance().apply {
+                        time = lastPaid.date
+                        add(Calendar.DAY_OF_YEAR, 15)
+                    }.time
+
+                    _warrantyStatus.value = WarrantyState(
+                        isActive = true,
+                        daysRemaining = 15 - diffInDays,
+                        expirationDate = expiration,
+                        sourceAppointmentService = lastPaid.serviceType
+                    )
+                } else {
+                    // Ya pasaron más de 15 días
+                    _warrantyStatus.value = WarrantyState(isActive = false)
+                }
+            } else {
+                // Nunca ha pagado o es nuevo
+                _warrantyStatus.value = WarrantyState(isActive = false)
+            }
+        }
+    }
 }
+
+data class WarrantyState(
+    val isActive: Boolean = false,
+    val daysRemaining: Long = 0,
+    val expirationDate: Date? = null,
+    val sourceAppointmentService: String = "" // ¿Qué cita activó la garantía? (Quiropodia/Corrección)
+)
