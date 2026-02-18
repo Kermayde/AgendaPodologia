@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.AppointmentStatus
+import com.flores.agendapodologia.model.PaymentMethod
 import com.flores.agendapodologia.ui.components.DatePickerModal
 import com.flores.agendapodologia.ui.components.FinishAppointmentDialog
 import com.flores.agendapodologia.ui.components.ServiceSelector
@@ -112,18 +113,25 @@ fun AppointmentDetailScreen(
                         // MODO EDICIÓN: Guardar
                         IconButton(onClick = {
                             if (appointment != null) {
-                                // Si cambiamos a PENDIENTE, asumimos que ya no está pagada (o se revisará al terminarla de nuevo)
-                                val isNowPending = editStatus == AppointmentStatus.PENDIENTE
+                                // Lógica de Negocio:
+                                // Si el estado NO es FINALIZADA (ej. Pendiente, Cancelada, No Asistió),
+                                // debemos anular el pago y la fecha de cierre.
+                                val isNotFinished = editStatus != AppointmentStatus.FINALIZADA
 
                                 val updatedAppt = appointment!!.copy(
                                     date = editDate,
                                     serviceType = editService,
                                     podiatristName = editPodiatrist,
                                     status = editStatus,
-                                    // Lógica opcional: Si la regresas a pendiente, ¿quitamos el pago?
-                                    // Por seguridad, dejemos el pago como estaba, pero quitamos la fecha de completado si vuelve a pendiente.
-                                    completedAt = if (isNowPending) null else appointment!!.completedAt
+
+                                    // --- AQUÍ ESTÁ EL CAMBIO ---
+                                    // Si no está finalizada, forzamos a falso/null.
+                                    // Si sí está finalizada, mantenemos lo que ya tenía.
+                                    isPaid = if (isNotFinished) false else appointment!!.isPaid,
+                                    paymentMethod = if (isNotFinished) PaymentMethod.NONE else appointment!!.paymentMethod,
+                                    completedAt = if (isNotFinished) null else appointment!!.completedAt
                                 )
+
                                 viewModel.updateAppointment(updatedAppt) {
                                     isEditing = false
                                 }
