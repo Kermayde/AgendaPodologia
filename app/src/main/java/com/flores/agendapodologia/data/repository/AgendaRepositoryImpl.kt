@@ -386,4 +386,28 @@ class AgendaRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    // Actualizar cualquier dato de la cita
+    override suspend fun updateAppointment(appointment: Appointment): Result<Boolean> {
+        return try {
+            db.collection("appointments").document(appointment.id)
+                .set(appointment) // .set sobrescribe el documento con los nuevos datos
+                .await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // Eliminar cita
+    override suspend fun deleteAppointment(appointmentId: String): Result<Boolean> {
+        return try {
+            db.collection("appointments").document(appointmentId)
+                .delete()
+                .await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

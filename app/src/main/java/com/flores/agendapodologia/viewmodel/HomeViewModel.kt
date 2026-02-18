@@ -336,6 +336,23 @@ class HomeViewModel(
                 }
         }
     }
+
+    fun updateAppointment(appointment: Appointment, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            repository.updateAppointment(appointment)
+                .onSuccess {
+                    _currentDetailAppointment.value = appointment // Actualizamos la vista local
+                    onSuccess()
+                }
+        }
+    }
+
+    fun deleteAppointment(appointmentId: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            repository.deleteAppointment(appointmentId)
+                .onSuccess { onSuccess() }
+        }
+    }
 }
 
 data class WarrantyState(
