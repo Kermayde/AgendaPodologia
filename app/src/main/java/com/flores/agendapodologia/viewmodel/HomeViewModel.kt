@@ -375,8 +375,32 @@ class HomeViewModel(
         }
     }
 
+    fun scheduleBlock(
+        date: Long,
+        service: String,
+        podiatrist: String,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            val appointment = Appointment(
+                patientId = "BLOQUEO_ID", // Un ID falso para que no busque un paciente real
+                patientName = "BLOQUEO / NO DISPONIBLE",
+                patientPhone = "",
+                podiatristName = podiatrist,
+                serviceType = service,
+                date = Date(date),
+                status = AppointmentStatus.FINALIZADA, // Lo marcamos finalizado para que no pida cobrarlo
+                isPaid = false,
+                amountCharged = 0.0
+            )
+
+            repository.addAppointmentOnly(appointment)
+                .onSuccess { onSuccess() }
+        }
+    }
+
     // 2. DENTRO DE LA CLASE HomeViewModel:
-// Creamos un Flow que "observa" a las citas y calcula el resumen automáticamente
+    // Creamos un Flow que "observa" a las citas y calcula el resumen automáticamente
     val dailySummary: StateFlow<DailySummary> = _appointments.map { appts ->
         var total = 0.0
         var cash = 0.0

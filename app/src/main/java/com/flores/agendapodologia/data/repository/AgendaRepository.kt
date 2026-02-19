@@ -26,6 +26,7 @@ interface AgendaRepository {
     suspend fun finishAppointment(appointmentId: String, isPaid: Boolean, paymentMethod: PaymentMethod, amountCharged: Double): Result<Boolean>
     suspend fun updateAppointment(appointment: Appointment): Result<Boolean>
     suspend fun deleteAppointment(appointmentId: String): Result<Boolean>
+    suspend fun addAppointmentOnly(appointment: Appointment): Result<Boolean>
 
 
 }

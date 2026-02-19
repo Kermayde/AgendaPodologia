@@ -417,4 +417,17 @@ class AgendaRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    // En la Implementación (AgendaRepositoryImpl.kt):
+    override suspend fun addAppointmentOnly(appointment: Appointment): Result<Boolean> {
+        return try {
+            val docRef = db.collection("appointments").document()
+            // Le asignamos el ID generado por Firebase
+            val apptToSave = appointment.copy(id = docRef.id)
+            docRef.set(apptToSave).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

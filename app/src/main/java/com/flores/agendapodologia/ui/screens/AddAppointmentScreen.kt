@@ -320,11 +320,8 @@ fun AddAppointmentScreen(
                     }
 
                     if (isBlockOut) {
-                        // Guardado especial para Bloqueos (Sin paciente)
-                        viewModel.scheduleAppointment(
-                            patientName = "BLOQUEO / NO DISPONIBLE",
-                            patientPhone = "0000000000",
-                            selectedPatient = null, // No se vincula a nadie
+                        // ¡NUEVA LÓGICA DIRECTA PARA BLOQUEOS!
+                        viewModel.scheduleBlock(
                             date = calendar.timeInMillis,
                             service = serviceType,
                             podiatrist = podiatrist,
