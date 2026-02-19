@@ -110,38 +110,25 @@ fun HomeScreen(
     ) { paddingValues ->
         // AQUÍ VA LA LÍNEA DE TIEMPO (TIMELINE)
         // Por ahora mantenemos tu vista antigua dentro del Box para probar la navegación primero
+        // Contenedor principal
         Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
 
-            // ... (Tu código actual de LazyColumn o Empty State) ...
-            // DEJA ESTO COMO ESTÁ POR UN MOMENTO PARA PROBAR LA NAVEGACIÓN
-            if (appointments.isEmpty()) {
-                // Estado vacío más bonito
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("No hay citas para este día", color = Color.Gray)
+            // LLAMAMOS AL NUEVO TIMELINE
+            TimelineScreen(
+                selectedDate = selectedDate,
+                appointments = appointments,
+                onAppointmentClick = onAppointmentClick,
+                onAddAtHourClick = { hour ->
+                    // BONUS: Aquí podrías abrir la pantalla de "Agregar Cita"
+                    // pre-configurando la hora seleccionada.
+                    // Por ahora, solo llamamos al genérico:
+                    onAddClick()
                 }
-            } else {
-                // LISTA DE CITAS
-                LazyColumn(
-                    contentPadding = PaddingValues(bottom = 80.dp) // Espacio para el FAB
-                ) {
-                    items(appointments) { appointment ->
-                        AppointmentCard(
-                            appointment = appointment,
-                            onClick = { onAppointmentClick(appointment) }
-                        )
-                    }
-                }
-            }
+            )
+
+            // Si la lista está vacía y es día laboral, el Timeline igual se mostrará (con huecos vacíos),
+            // lo cual es correcto porque muestra disponibilidad.
+            // Solo si NO carga nada (null), podríamos poner un loading.
         }
     }
 
