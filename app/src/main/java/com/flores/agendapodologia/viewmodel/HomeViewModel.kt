@@ -14,8 +14,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.concurrent.TimeUnit
@@ -335,19 +337,21 @@ class HomeViewModel(
     fun finishAppointment(
         isPaid: Boolean,
         paymentMethod: PaymentMethod,
+        amountCharged: Double, // <--- NUEVO PARÁMETRO
         onSuccess: () -> Unit
     ) {
         val currentAppt = _currentDetailAppointment.value ?: return
 
         viewModelScope.launch {
-            repository.finishAppointment(currentAppt.id, isPaid, paymentMethod)
+            repository.finishAppointment(currentAppt.id, isPaid, paymentMethod, amountCharged)
                 .onSuccess {
-                    // Actualizamos el estado local para que se refleje inmediatamente en la UI
+                    // Actualizamos el estado local
                     _currentDetailAppointment.value = currentAppt.copy(
                         status = AppointmentStatus.FINALIZADA,
                         isPaid = isPaid,
                         paymentMethod = paymentMethod,
-                        completedAt = Date()
+                        amountCharged = amountCharged, // <--- ACTUALIZAMOS LOCALMENTE
+                        completedAt = java.util.Date()
                     )
                     onSuccess()
                 }
@@ -370,6 +374,30 @@ class HomeViewModel(
                 .onSuccess { onSuccess() }
         }
     }
+
+    // 2. DENTRO DE LA CLASE HomeViewModel:
+// Creamos un Flow que "observa" a las citas y calcula el resumen automáticamente
+    val dailySummary: StateFlow<DailySummary> = _appointments.map { appts ->
+        var total = 0.0
+        var cash = 0.0
+        var bank = 0.0
+
+        // Filtramos SOLO las citas terminadas y pagadas
+        val paidAppointments = appts.filter {
+            it.status == AppointmentStatus.FINALIZADA && it.isPaid
+        }
+
+        paidAppointments.forEach { appt ->
+            total += appt.amountCharged
+            when (appt.paymentMethod) {
+                PaymentMethod.EFECTIVO -> cash += appt.amountCharged
+                PaymentMethod.TARJETA, PaymentMethod.TRANSFERENCIA -> bank += appt.amountCharged
+                else -> {}
+            }
+        }
+
+        DailySummary(total, cash, bank)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DailySummary())
 }
 
 data class WarrantyState(
@@ -378,3 +406,16 @@ data class WarrantyState(
     val expirationDate: Date? = null,
     val sourceAppointmentService: String = "" // ¿Qué cita activó la garantía? (Quiropodia/Corrección)
 )
+
+// 1. DATA CLASS PARA EL RESUMEN (Ponlo al final del archivo)
+data class DailySummary(
+    val total: Double = 0.0,
+    val cash: Double = 0.0,
+    val cardAndTransfer: Double = 0.0 // Agrupamos tarjeta y transferencia para simplificar
+) {
+    // Helpers para formatear a moneda ($1,500.00)
+    val totalFormatted: String get() = NumberFormat.getCurrencyInstance().format(total)
+    val cashFormatted: String get() = NumberFormat.getCurrencyInstance().format(cash)
+    val bankFormatted: String get() = NumberFormat.getCurrencyInstance().format(cardAndTransfer)
+}
+

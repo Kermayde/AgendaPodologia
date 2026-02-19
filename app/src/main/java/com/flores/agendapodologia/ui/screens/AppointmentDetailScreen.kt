@@ -352,14 +352,15 @@ fun AppointmentDetailScreen(
     // --- DIÁLOGOS ---
     if (showFinishDialog) {
         FinishAppointmentDialog(
-            isWarrantyActive = warrantyState.isActive && appointment?.serviceType == "Correcciones", // Solo sugerimos si es corrección
+            serviceType = appointment?.serviceType ?: "Otro", // <--- LE PASAMOS EL SERVICIO
+            isWarrantyActive = warrantyState.isActive && appointment?.serviceType == "Correcciones",
             onDismiss = { showFinishDialog = false },
-            onConfirm = { isPaid, method ->
-                viewModel.finishAppointment(isPaid, method) {
+            onConfirm = { isPaid, method, amount -> // <--- AHORA RECIBIMOS amount
+                viewModel.finishAppointment(isPaid, method, amount) {
                     showFinishDialog = false
-                    // Opcional: mostrar un Toast o volver atrás
+                    // onBack() // Descomenta esto si quieres que se salga de la pantalla al terminar
                 }
-            },
+            }
         )
     }
 

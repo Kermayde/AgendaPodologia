@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.ui.components.AppointmentCard
+import com.flores.agendapodologia.ui.components.DailySummaryCard
 import com.flores.agendapodologia.ui.components.DatePickerModal
 import com.flores.agendapodologia.ui.components.PatientItem
 import com.flores.agendapodologia.ui.components.WeekCalendar
@@ -51,6 +52,7 @@ fun HomeScreen(
     // 1. Observamos las Citas y la Fecha seleccionada
     val appointments by viewModel.appointments.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
+    val dailySummary by viewModel.dailySummary.collectAsState()
 
     // Estado para el selector de mes (TopBar)
     var showMonthPicker by remember { mutableStateOf(false) }
@@ -108,27 +110,32 @@ fun HomeScreen(
         }
 
     ) { paddingValues ->
-        // AQUÍ VA LA LÍNEA DE TIEMPO (TIMELINE)
-        // Por ahora mantenemos tu vista antigua dentro del Box para probar la navegación primero
-        // Contenedor principal
-        Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+        // Contenedor principal con padding
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            // 1. MOSTRAR EL DASHBOARD FINANCIERO
+            // Solo lo mostramos si ya hay dinero cobrado, para no estorbar cuando está en ceros
+            if (dailySummary.total > 0) {
+                DailySummaryCard(summary = dailySummary)
+            }
 
-            // LLAMAMOS AL NUEVO TIMELINE
-            TimelineScreen(
-                selectedDate = selectedDate,
-                appointments = appointments,
-                onAppointmentClick = onAppointmentClick,
-                onAddAtHourClick = { clickedHour ->
-                    // 1. Guardamos la hora y fecha exacta que el usuario tocó
-                    viewModel.setPreselectedTime(selectedDate, clickedHour)
-                    // 2. Navegamos a la pantalla de Nueva Cita
-                    onAddClick()
-                }
-            )
-
-            // Si la lista está vacía y es día laboral, el Timeline igual se mostrará (con huecos vacíos),
-            // lo cual es correcto porque muestra disponibilidad.
-            // Solo si NO carga nada (null), podríamos poner un loading.
+            // 2. MOSTRAR LA LÍNEA DE TIEMPO
+            Box(modifier = Modifier.fillMaxSize()) {
+                TimelineScreen(
+                    selectedDate = selectedDate,
+                    appointments = appointments,
+                    onAppointmentClick = onAppointmentClick,
+                    onAddAtHourClick = { clickedHour ->
+                        // 1. Guardamos la hora y fecha exacta que el usuario tocó
+                        viewModel.setPreselectedTime(selectedDate, clickedHour)
+                        // 2. Navegamos a la pantalla de Nueva Cita
+                        onAddClick()
+                    }
+                )
+            }
         }
     }
 

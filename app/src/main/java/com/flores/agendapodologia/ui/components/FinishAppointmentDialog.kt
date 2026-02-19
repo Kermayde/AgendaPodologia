@@ -3,10 +3,10 @@ package com.flores.agendapodologia.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,21 +14,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.PaymentMethod
+import com.flores.agendapodologia.util.ServiceConstants
 
 @Composable
 fun FinishAppointmentDialog(
-    isWarrantyActive: Boolean, // Para sugerir defaults
+    serviceType: String, // <--- NUEVO: Necesitamos saber qué servicio es
+    isWarrantyActive: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (Boolean, PaymentMethod) -> Unit
+    onConfirm: (Boolean, PaymentMethod, Double) -> Unit // <--- NUEVO: Devuelve el Double
 ) {
     // ESTADOS
-    // Si hay garantía, por defecto NO se cobra. Si no, SÍ se cobra.
     var isPaid by remember { mutableStateOf(!isWarrantyActive) }
-
-    // Por defecto Efectivo si se cobra
     var selectedMethod by remember { mutableStateOf(PaymentMethod.EFECTIVO) }
+
+    // ESTADO DEL DINERO
+    // Calculamos el precio inicial basado en el catálogo y la garantía
+    val initialPrice = if (isWarrantyActive && serviceType == "Correcciones") {
+        "0.0"
+    } else {
+        ServiceConstants.getSuggestedPrice(serviceType).toString()
+    }
+    var amountText by remember { mutableStateOf(initialPrice) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -37,21 +46,19 @@ fun FinishAppointmentDialog(
             Column {
                 // 1. SWITCH DE COBRO
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
                         Text(
-                            text = if (isPaid) "Se realizó cobro" else "Sin costo (Garantía)",
+                            text = if (isPaid) "Se realizó cobro" else "Sin costo (Garantía/Otro)",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (isPaid) MaterialTheme.colorScheme.primary else Color.Gray
                         )
                         if (isWarrantyActive && isPaid) {
-                            Text("(Garantía disponible)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                            Text("¡Ojo! Garantía disponible", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                         }
                     }
                     Switch(
@@ -59,7 +66,7 @@ fun FinishAppointmentDialog(
                         onCheckedChange = { isPaid = it },
                         thumbContent = {
                             Icon(
-                                imageVector = if (isPaid) Icons.Default.ThumbUp else Icons.Default.ShoppingCart,
+                                imageVector = if (isPaid) Icons.Default.ShoppingCart else Icons.Default.Clear,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -67,8 +74,27 @@ fun FinishAppointmentDialog(
                     )
                 }
 
-                // 2. MÉTODOS DE PAGO (Solo visibles si se cobra)
+                // 2. MONTO Y MÉTODO DE PAGO (Solo visibles si se cobra)
                 if (isPaid) {
+                    // --- CAMPO DE CANTIDAD ---
+                    OutlinedTextField(
+                        value = amountText,
+                        onValueChange = {
+                            // Solo permitimos números y un punto decimal
+                            if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                amountText = it
+                            }
+                        },
+                        label = { Text("Cantidad Cobrada") },
+                        leadingIcon = { Icon(Icons.Default.ShoppingCart, null) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // --- MÉTODOS DE PAGO ---
                     Text("Método de Pago:", style = MaterialTheme.typography.labelMedium)
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -91,10 +117,7 @@ fun FinishAppointmentDialog(
                                     ),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                RadioButton(
-                                    selected = (selectedMethod == method),
-                                    onClick = null // null para que el click lo maneje el Row
-                                )
+                                RadioButton(selected = (selectedMethod == method), onClick = null)
                                 Text(
                                     text = label,
                                     style = MaterialTheme.typography.bodyMedium,
@@ -109,9 +132,11 @@ fun FinishAppointmentDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    // Si no se pagó, el método es NONE
                     val finalMethod = if (isPaid) selectedMethod else PaymentMethod.NONE
-                    onConfirm(isPaid, finalMethod)
+                    // Convertimos el texto a Double de forma segura. Si está vacío o es inválido, pasa 0.0
+                    val finalAmount = if (isPaid) amountText.toDoubleOrNull() ?: 0.0 else 0.0
+
+                    onConfirm(isPaid, finalMethod, finalAmount)
                 }
             ) {
                 Text("Terminar")

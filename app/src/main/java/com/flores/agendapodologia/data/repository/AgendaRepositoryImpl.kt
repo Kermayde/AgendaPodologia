@@ -368,13 +368,20 @@ class AgendaRepositoryImpl(
         }
     }
 
-    override suspend fun finishAppointment(appointmentId: String, isPaid: Boolean, paymentMethod: PaymentMethod): Result<Boolean> {
+    // En la Implementación (AgendaRepositoryImpl.kt):
+    override suspend fun finishAppointment(
+        appointmentId: String,
+        isPaid: Boolean,
+        paymentMethod: PaymentMethod,
+        amountCharged: Double
+    ): Result<Boolean> {
         return try {
             val updates = mapOf(
-                "status" to AppointmentStatus.FINALIZADA, // Usamos el Enum
-                "paid" to isPaid, // Usamos la clave "paid" (por tu corrección anterior)
+                "status" to AppointmentStatus.FINALIZADA,
+                "paid" to isPaid,
                 "paymentMethod" to paymentMethod,
-                "completedAt" to java.util.Date() // Fecha y hora exacta del cierre
+                "amountCharged" to amountCharged,
+                "completedAt" to java.util.Date()
             )
 
             db.collection("appointments").document(appointmentId)

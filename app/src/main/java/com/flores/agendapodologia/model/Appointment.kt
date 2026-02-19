@@ -24,6 +24,9 @@ data class Appointment(
     var isPaid: Boolean = false,
     val paymentMethod: PaymentMethod = PaymentMethod.NONE,
 
+    // NUEVO CAMPO: Lo que realmente se cobró en esta cita específica
+    val amountCharged: Double = 0.0,
+
     val notes: String = ""
 )
 
