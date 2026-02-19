@@ -9,6 +9,7 @@ object ServiceConstants {
         "Curación",
         "Revisión",
         "Uña encarnada",
+        "Bloqueo Personal",
         "Otro"
     )
 

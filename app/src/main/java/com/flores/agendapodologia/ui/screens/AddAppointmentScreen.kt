@@ -37,32 +37,34 @@ fun AddAppointmentScreen(
     // ESTADOS DEL FORMULARIO
     val filteredPatients by viewModel.filteredPatients.collectAsState()
 
-    // NUEVO ESTADO: ¿Estamos en modo edición de un paciente existente?
-    var isEditingExisting by remember { mutableStateOf(false) }
-
     // Datos del Paciente
     var selectedPatient by remember { mutableStateOf<Patient?>(null) }
     var patientNameQuery by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
+    var isEditingExisting by remember { mutableStateOf(false) }
+
+    // Datos del Servicio (Movido arriba para usarlo en la lógica visual)
+    var serviceType by remember { mutableStateOf("Quiropodia") }
 
     // Fecha y Hora
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var selectedDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
-    var selectedHour by remember { mutableIntStateOf(10) } // 10 AM por defecto
+    var selectedHour by remember { mutableIntStateOf(10) }
     var selectedMinute by remember { mutableIntStateOf(0) }
 
-    // Datos del Servicio
-    var serviceType by remember { mutableStateOf("Corte General") }
-    var podiatrist by remember { mutableStateOf("Carlos") } // Tú por defecto ;)
+    var podiatrist by remember { mutableStateOf("Carlos") }
 
-    // Lógica: Si seleccionamos un paciente, rellenamos datos
-    LaunchedEffect(selectedPatient) {
-        selectedPatient?.let {
-            phone = it.phone
-            patientNameQuery = it.name
-        }
+    // --- MAGIA DE PRE-LLENADO ---
+    // Leemos el ViewModel solo una vez al abrir la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.preselectedDate.value?.let { selectedDateMillis = it }
+        viewModel.preselectedHour.value?.let { selectedHour = it }
+        viewModel.clearPreselectedTime() // Limpiamos para la próxima vez
     }
+
+    // Lógica visual: Si es Bloqueo, no hay paciente
+    val isBlockOut = serviceType == "Bloqueo Personal"
 
     Scaffold(
         topBar = {
@@ -76,156 +78,162 @@ fun AddAppointmentScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()) // Scroll por si el teclado tapa algo
-        ) {
+        Column(modifier = Modifier.padding(padding).padding(16.dp).verticalScroll(rememberScrollState())) {
             // --- LÓGICA DE UI DEL PACIENTE ---
 
-            Text("Datos del Paciente", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
+            // 1. TIPO DE SERVICIO (Lo ponemos ARRIBA para que el usuario decida primero si es bloqueo)
+            ServiceSelector(
+                selectedService = serviceType,
+                onServiceSelected = { serviceType = it }
+            )
 
-            if (selectedPatient == null) {
-                // MODO 1: BUSCADOR / NUEVO REGISTRO
+            Spacer(modifier = Modifier.height(24.dp))
 
-                // 1. El Buscador (Nombre)
-                PatientAutocomplete(
-                    patientsFound = filteredPatients,
-                    onQueryChanged = { query ->
-                        patientNameQuery = query
-                        viewModel.searchPatient(query)
-                        // Si borra el nombre, limpiamos el teléfono también para evitar datos huérfanos
-                        if (query.isEmpty()) phone = ""
-                    },
-                    onPatientSelected = { patient ->
-                        selectedPatient = patient
-                        patientNameQuery = patient.name
-                        phone = patient.phone
-                        isEditingExisting = false
-                        viewModel.searchPatient("")
-                    },
-                    onClearSelection = {
-                        selectedPatient = null
-                        phone = ""
-                    }
-                )
+            if (!isBlockOut) {
+                Text("Datos del Paciente", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // 2. Campo de Teléfono (SOLO aparece si escribió un nombre y NO seleccionó a nadie)
-                // Usamos AnimatedVisibility para que se vea elegante al aparecer
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = patientNameQuery.isNotEmpty()
-                ) {
-                    Column {
-                        Spacer(modifier = Modifier.height(8.dp))
+                if (selectedPatient == null) {
+                    // MODO 1: BUSCADOR / NUEVO REGISTRO
 
-                        OutlinedTextField(
-                            value = phone,
-                            onValueChange = { phone = it },
-                            label = { Text("Teléfono (Nuevo Paciente)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            // Teclado numérico
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
-                            ),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                // Un color sutil para indicar que es un registro nuevo
-                                focusedBorderColor = MaterialTheme.colorScheme.secondary,
-                                focusedLabelColor = MaterialTheme.colorScheme.secondary
+                    // 1. El Buscador (Nombre)
+                    PatientAutocomplete(
+                        patientsFound = filteredPatients,
+                        onQueryChanged = { query ->
+                            patientNameQuery = query
+                            viewModel.searchPatient(query)
+                            // Si borra el nombre, limpiamos el teléfono también para evitar datos huérfanos
+                            if (query.isEmpty()) phone = ""
+                        },
+                        onPatientSelected = { patient ->
+                            selectedPatient = patient
+                            patientNameQuery = patient.name
+                            phone = patient.phone
+                            isEditingExisting = false
+                            viewModel.searchPatient("")
+                        },
+                        onClearSelection = {
+                            selectedPatient = null
+                            phone = ""
+                        }
+                    )
+
+                    // 2. Campo de Teléfono (SOLO aparece si escribió un nombre y NO seleccionó a nadie)
+                    // Usamos AnimatedVisibility para que se vea elegante al aparecer
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = patientNameQuery.isNotEmpty()
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            OutlinedTextField(
+                                value = phone,
+                                onValueChange = { phone = it },
+                                label = { Text("Teléfono (Nuevo Paciente)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                // Teclado numérico
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    // Un color sutil para indicar que es un registro nuevo
+                                    focusedBorderColor = MaterialTheme.colorScheme.secondary,
+                                    focusedLabelColor = MaterialTheme.colorScheme.secondary
+                                )
                             )
-                        )
 
-                        Text(
-                            text = "Se registrará como paciente nuevo",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
-                        )
-                    }
-                }
-            } else {
-                // MODO 2: PACIENTE SELECCIONADO (VISTA BLOQUEADA / EDICIÓN)
-
-                // Tarjeta que muestra que ya está vinculado
-                OutlinedCard(
-                    colors = CardDefaults.outlinedCardColors(
-                        containerColor = if (isEditingExisting) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
                             Text(
-                                text = if (isEditingExisting) "Editando Ficha Maestra" else "Paciente Vinculado",
+                                text = "Se registrará como paciente nuevo",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.padding(start = 4.dp, top = 2.dp)
                             )
+                        }
+                    }
+                } else {
+                    // MODO 2: PACIENTE SELECCIONADO (VISTA BLOQUEADA / EDICIÓN)
 
-                            Row {
-                                // Botón EDITAR (Lápiz)
-                                IconButton(onClick = { isEditingExisting = !isEditingExisting }) {
-                                    Icon(
-                                        imageVector = if (isEditingExisting) Icons.Default.Check else Icons.Default.Edit,
-                                        contentDescription = "Editar datos del paciente"
-                                    )
-                                }
-                                // Botón CERRAR (X) - Desvincular
-                                IconButton(onClick = {
-                                    selectedPatient = null
-                                    patientNameQuery = ""
-                                    phone = ""
-                                    isEditingExisting = false
-                                }) {
-                                    Icon(Icons.Default.Clear, "Desvincular")
+                    // Tarjeta que muestra que ya está vinculado
+                    OutlinedCard(
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = if (isEditingExisting) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (isEditingExisting) "Editando Ficha Maestra" else "Paciente Vinculado",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+
+                                Row {
+                                    // Botón EDITAR (Lápiz)
+                                    IconButton(onClick = { isEditingExisting = !isEditingExisting }) {
+                                        Icon(
+                                            imageVector = if (isEditingExisting) Icons.Default.Check else Icons.Default.Edit,
+                                            contentDescription = "Editar datos del paciente"
+                                        )
+                                    }
+                                    // Botón CERRAR (X) - Desvincular
+                                    IconButton(onClick = {
+                                        selectedPatient = null
+                                        patientNameQuery = ""
+                                        phone = ""
+                                        isEditingExisting = false
+                                    }) {
+                                        Icon(Icons.Default.Clear, "Desvincular")
+                                    }
                                 }
                             }
+
+                            // Campo NOMBRE
+                            OutlinedTextField(
+                                value = patientNameQuery,
+                                onValueChange = { patientNameQuery = it },
+                                label = { Text("Nombre") },
+                                enabled = isEditingExisting, // <--- AQUÍ ESTÁ LA MAGIA
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = Color.Transparent, // Que parezca solo texto cuando está bloqueado
+                                    disabledLabelColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Campo TELÉFONO
+                            OutlinedTextField(
+                                value = phone,
+                                onValueChange = { phone = it },
+                                label = { Text("Teléfono") },
+                                enabled = isEditingExisting, // <--- AQUÍ TAMBIÉN
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = Color.Transparent
+                                )
+                            )
                         }
+                    }
 
-                        // Campo NOMBRE
-                        OutlinedTextField(
-                            value = patientNameQuery,
-                            onValueChange = { patientNameQuery = it },
-                            label = { Text("Nombre") },
-                            enabled = isEditingExisting, // <--- AQUÍ ESTÁ LA MAGIA
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledBorderColor = Color.Transparent, // Que parezca solo texto cuando está bloqueado
-                                disabledLabelColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Campo TELÉFONO
-                        OutlinedTextField(
-                            value = phone,
-                            onValueChange = { phone = it },
-                            label = { Text("Teléfono") },
-                            enabled = isEditingExisting, // <--- AQUÍ TAMBIÉN
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledBorderColor = Color.Transparent
-                            )
+                    if (isEditingExisting) {
+                        Text(
+                            text = "⚠️ Los cambios se guardarán en la ficha del paciente.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                 }
-
-                if (isEditingExisting) {
-                    Text(
-                        text = "⚠️ Los cambios se guardarán en la ficha del paciente.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+                Spacer(modifier = Modifier.height(24.dp))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -284,14 +292,6 @@ fun AddAppointmentScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3. TIPO DE SERVICIO (Nuevo Componente)
-            ServiceSelector(
-                selectedService = serviceType,
-                onServiceSelected = { serviceType = it }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
             // 4. PODÓLOGO (Radio Buttons)
             Text("Asignar a", style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -304,42 +304,49 @@ fun AddAppointmentScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // BOTÓN GUARDAR
+            // BOTÓN GUARDAR (Validación dinámica)
+            val isFormValid = if (isBlockOut) {
+                true // Si es bloqueo, siempre es válido (solo necesita fecha/hora)
+            } else {
+                patientNameQuery.isNotEmpty() && phone.isNotEmpty() // Si es cita normal, exige datos
+            }
+
             Button(
                 onClick = {
-                    // 1. Creamos un calendario temporal en UTC para leer los milisegundos del DatePicker
-                    val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-                        timeInMillis = selectedDateMillis
-                    }
-
-                    // 2. Creamos el calendario local que se guardará, usando los datos del UTC
                     val calendar = Calendar.getInstance().apply {
-                        set(Calendar.YEAR, utcCalendar.get(Calendar.YEAR))
-                        set(Calendar.MONTH, utcCalendar.get(Calendar.MONTH))
-                        set(Calendar.DAY_OF_MONTH, utcCalendar.get(Calendar.DAY_OF_MONTH))
-
-                        // Aquí aplicas la hora y minutos que seleccionaste en el TimePicker
+                        timeInMillis = selectedDateMillis
                         set(Calendar.HOUR_OF_DAY, selectedHour)
                         set(Calendar.MINUTE, selectedMinute)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
                     }
 
-                    // 3. Ahora enviamos al ViewModel el tiempo correcto
-                    viewModel.scheduleAppointment(
-                        patientName = patientNameQuery,
-                        patientPhone = phone,
-                        selectedPatient = selectedPatient,
-                        date = calendar.timeInMillis, // Este ya tiene la fecha local correcta
-                        service = serviceType,
-                        podiatrist = podiatrist,
-                        onSuccess = { onBack() }
-                    )
+                    if (isBlockOut) {
+                        // Guardado especial para Bloqueos (Sin paciente)
+                        viewModel.scheduleAppointment(
+                            patientName = "BLOQUEO / NO DISPONIBLE",
+                            patientPhone = "0000000000",
+                            selectedPatient = null, // No se vincula a nadie
+                            date = calendar.timeInMillis,
+                            service = serviceType,
+                            podiatrist = podiatrist,
+                            onSuccess = { onBack() }
+                        )
+                    } else {
+                        // Guardado normal
+                        viewModel.scheduleAppointment(
+                            patientName = patientNameQuery,
+                            patientPhone = phone,
+                            selectedPatient = selectedPatient,
+                            date = calendar.timeInMillis,
+                            service = serviceType,
+                            podiatrist = podiatrist,
+                            onSuccess = { onBack() }
+                        )
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = patientNameQuery.isNotEmpty() && phone.isNotEmpty()
+                enabled = isFormValid
             ) {
-                Text("Agendar Cita")
+                Text(if (isBlockOut) "Bloquear Horario" else "Agendar Cita")
             }
         }
     }

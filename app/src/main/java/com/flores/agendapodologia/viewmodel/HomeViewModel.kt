@@ -201,6 +201,23 @@ class HomeViewModel(
         }
     }
 
+    // --- ESTADOS PARA PRE-LLENADO DE NUEVA CITA ---
+    private val _preselectedDate = MutableStateFlow<Long?>(null)
+    val preselectedDate = _preselectedDate.asStateFlow()
+
+    private val _preselectedHour = MutableStateFlow<Int?>(null)
+    val preselectedHour = _preselectedHour.asStateFlow()
+
+    fun setPreselectedTime(dateMillis: Long, hour: Int) {
+        _preselectedDate.value = dateMillis
+        _preselectedHour.value = hour
+    }
+
+    fun clearPreselectedTime() {
+        _preselectedDate.value = null
+        _preselectedHour.value = null
+    }
+
     // --- ESTADOS PARA DIRECTORIO ---
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()

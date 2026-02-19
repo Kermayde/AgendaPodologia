@@ -118,10 +118,10 @@ fun HomeScreen(
                 selectedDate = selectedDate,
                 appointments = appointments,
                 onAppointmentClick = onAppointmentClick,
-                onAddAtHourClick = { hour ->
-                    // BONUS: Aquí podrías abrir la pantalla de "Agregar Cita"
-                    // pre-configurando la hora seleccionada.
-                    // Por ahora, solo llamamos al genérico:
+                onAddAtHourClick = { clickedHour ->
+                    // 1. Guardamos la hora y fecha exacta que el usuario tocó
+                    viewModel.setPreselectedTime(selectedDate, clickedHour)
+                    // 2. Navegamos a la pantalla de Nueva Cita
                     onAddClick()
                 }
             )
