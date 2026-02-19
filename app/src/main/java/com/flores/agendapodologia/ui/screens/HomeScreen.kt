@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -28,12 +30,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.ui.components.AppointmentCard
+import com.flores.agendapodologia.ui.components.DatePickerModal
 import com.flores.agendapodologia.ui.components.PatientItem
+import com.flores.agendapodologia.ui.components.WeekCalendar
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar // Para sumar/restar días
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,62 +52,52 @@ fun HomeScreen(
     val appointments by viewModel.appointments.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
 
-    // Formateador para mostrar "Hoy, 12 Feb"
-    val dateFormatter = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault())
+    // Estado para el selector de mes (TopBar)
+    var showMonthPicker by remember { mutableStateOf(false) }
+
+    // Formateador para "Febrero 2026"
+    val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
 
     Scaffold(
         topBar = {
-            Column {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 TopAppBar(
-                    title = { Text("Agenda Podológica") },
+                    title = {
+                        // Título clickeable para cambiar mes/año
+                        TextButton(
+                            onClick = { showMonthPicker = true },
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onPrimary)
+                        ) {
+                            Text(
+                                text = monthYearFormat.format(Date(selectedDate)).replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(Icons.Default.DateRange, null)
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     actions = {
                         IconButton(onClick = onOpenDirectory) {
-                            Icon(Icons.Default.Person, "Directorio") // Necesitas importar PersonSearch
+                            Icon(Icons.Default.Person, "Directorio", tint = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
                 )
 
-                // --- BARRA DE FECHAS (NUEVO) ---
+                // --- NUEVO COMPONENTE SEMANAL ---
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.fillMaxWidth()
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 4.dp
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Botón Día Anterior
-                        IconButton(onClick = {
-                            val cal = Calendar.getInstance().apply { timeInMillis = selectedDate }
-                            cal.add(Calendar.DAY_OF_YEAR, -1)
-                            viewModel.changeDate(cal.timeInMillis)
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Anterior")
+                    WeekCalendar(
+                        selectedDate = selectedDate,
+                        onDateSelected = { newDate ->
+                            viewModel.changeDate(newDate)
                         }
-
-                        // Texto de la Fecha
-                        Text(
-                            text = dateFormatter.format(Date(selectedDate)).replaceFirstChar { it.uppercase() },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        // Botón Día Siguiente
-                        IconButton(onClick = {
-                            val cal = Calendar.getInstance().apply { timeInMillis = selectedDate }
-                            cal.add(Calendar.DAY_OF_YEAR, 1)
-                            viewModel.changeDate(cal.timeInMillis)
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, "Siguiente")
-                        }
-                    }
+                    )
                 }
             }
         },
@@ -111,9 +106,14 @@ fun HomeScreen(
                 Icon(Icons.Default.Add, "Nueva Cita")
             }
         }
+
     ) { paddingValues ->
+        // AQUÍ VA LA LÍNEA DE TIEMPO (TIMELINE)
+        // Por ahora mantenemos tu vista antigua dentro del Box para probar la navegación primero
         Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
 
+            // ... (Tu código actual de LazyColumn o Empty State) ...
+            // DEJA ESTO COMO ESTÁ POR UN MOMENTO PARA PROBAR LA NAVEGACIÓN
             if (appointments.isEmpty()) {
                 // Estado vacío más bonito
                 Column(
@@ -143,5 +143,27 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    // Diálogo para cambiar de mes (reutilizamos tu DatePickerModal)
+    if (showMonthPicker) {
+        DatePickerModal(
+            onDateSelected = { utcMillis ->
+                if (utcMillis != null) {
+                    // Ajuste de zona horaria (mismo truco que usamos antes)
+                    val cal = Calendar.getInstance()
+                    val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                    utcCal.timeInMillis = utcMillis
+
+                    cal.set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
+                    cal.set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
+                    cal.set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
+
+                    viewModel.changeDate(cal.timeInMillis)
+                }
+                showMonthPicker = false
+            },
+            onDismiss = { showMonthPicker = false }
+        )
     }
 }
