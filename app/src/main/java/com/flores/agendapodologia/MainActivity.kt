@@ -27,6 +27,7 @@ import androidx.navigation.navArgument
 import com.flores.agendapodologia.ui.navigation.AppScreens
 import com.flores.agendapodologia.ui.screens.PatientDetailScreen
 import com.flores.agendapodologia.ui.screens.PatientDirectoryScreen
+import com.flores.agendapodologia.ui.screens.SettingsScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +51,8 @@ class MainActivity : ComponentActivity() {
                             viewModel = viewModel,
                             onAddClick = { navController.navigate(AppScreens.AddAppointment.route) },
                             onAppointmentClick = { appt -> navController.navigate(AppScreens.AppointmentDetail.createRoute(appt.id)) },
-                            onOpenDirectory = { navController.navigate(AppScreens.PatientDirectory.route) } // <--- Botón nuevo en Home
+                            onOpenDirectory = { navController.navigate(AppScreens.PatientDirectory.route) },
+                            navController = navController
                         )
                     }
 
@@ -96,6 +98,14 @@ class MainActivity : ComponentActivity() {
                         LaunchedEffect(id) { id?.let { viewModel.loadAppointmentDetails(it) } }
 
                         AppointmentDetailScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 6. CONFIGURACIÓN (NUEVO)
+                    composable(AppScreens.Settings.route) {
+                        SettingsScreen(
                             viewModel = viewModel,
                             onBack = { navController.popBackStack() }
                         )

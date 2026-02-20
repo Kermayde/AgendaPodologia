@@ -1,6 +1,7 @@
 package com.flores.agendapodologia.data.repository
 
 import com.flores.agendapodologia.model.Appointment
+import com.flores.agendapodologia.model.ClinicSettings
 import com.flores.agendapodologia.model.Patient
 import com.flores.agendapodologia.model.PatientStatus
 import com.flores.agendapodologia.model.PaymentMethod
@@ -27,6 +28,8 @@ interface AgendaRepository {
     suspend fun updateAppointment(appointment: Appointment): Result<Boolean>
     suspend fun deleteAppointment(appointmentId: String): Result<Boolean>
     suspend fun addAppointmentOnly(appointment: Appointment): Result<Boolean>
+    fun getClinicSettings(): Flow<ClinicSettings>
+    suspend fun saveClinicSettings(settings: ClinicSettings): Result<Boolean>
 
 
 }

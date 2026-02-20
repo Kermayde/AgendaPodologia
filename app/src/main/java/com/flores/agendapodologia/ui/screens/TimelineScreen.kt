@@ -7,20 +7,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import com.flores.agendapodologia.model.Appointment
+import com.flores.agendapodologia.model.ClinicSettings
 import com.flores.agendapodologia.ui.components.TimeSlot
-import com.flores.agendapodologia.util.WorkingHours
 import java.util.Calendar
-import java.util.Date
 
 @Composable
 fun TimelineScreen(
     selectedDate: Long,
     appointments: List<Appointment>,
+    clinicSettings: ClinicSettings,
     onAppointmentClick: (Appointment) -> Unit,
     onAddAtHourClick: (Int) -> Unit
 ) {
-    // Rango de horas a mostrar (6 am a 9 pm)
-    val hours = (WorkingHours.START_HOUR..WorkingHours.END_HOUR).toList()
+    // Definimos el rango visual fijo de la agenda (ej. de 6 AM a 9 PM)
+    // Esto asegura que la pantalla siempre se vea igual de larga, independientemente
+    // de si abren a las 8 o a las 10. Las horas cerradas se pintarán grises.
+    val startVisualHour = 6
+    val endVisualHour = 21
+    val hours = (startVisualHour..endVisualHour).toList()
 
     // Estado del scroll
     val listState = rememberLazyListState()
@@ -30,12 +34,12 @@ fun TimelineScreen(
         val calendar = Calendar.getInstance()
         val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
 
-        // Si la hora actual está dentro de nuestro rango visual
-        if (currentHour in WorkingHours.START_HOUR..WorkingHours.END_HOUR) {
-            // Calculamos el índice (hora actual - hora inicio)
-            val index = currentHour - WorkingHours.START_HOUR
-            // Hacemos scroll (con un pequeño offset para que no quede pegado al borde)
-            listState.scrollToItem(index)
+        if (currentHour in startVisualHour..endVisualHour) {
+            val index = currentHour - startVisualHour
+            // Le restamos 1 al index (si se puede) para que la hora actual
+            // no quede pegada al techo de la pantalla y se vea un poquito de la hora anterior.
+            val targetIndex = if (index > 0) index - 1 else 0
+            listState.scrollToItem(targetIndex)
         }
     }
 
@@ -54,7 +58,8 @@ fun TimelineScreen(
 
             TimeSlot(
                 hour = hour,
-                isWorkingHour = WorkingHours.isWorkingHour(selectedDate, hour),
+                // AHORA USAMOS LA CONFIGURACIÓN DINÁMICA DE FIREBASE
+                isWorkingHour = clinicSettings.isWorkingHour(selectedDate, hour),
                 appointments = appointmentsInThisHour,
                 onAppointmentClick = onAppointmentClick,
                 onSlotClick = { clickedHour -> onAddAtHourClick(clickedHour) }

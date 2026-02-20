@@ -3,6 +3,7 @@ package com.flores.agendapodologia.data.repository
 import android.util.Log
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.AppointmentStatus
+import com.flores.agendapodologia.model.ClinicSettings
 import com.flores.agendapodologia.model.Patient
 import com.flores.agendapodologia.model.PatientStatus
 import com.flores.agendapodologia.model.PaymentMethod
@@ -429,5 +430,106 @@ class AgendaRepositoryImpl(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override fun getClinicSettings(): Flow<ClinicSettings> = callbackFlow {
+        val listener = db.collection("settings").document("working_hours")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("REPO_SETTINGS", "Error obteniendo configuraciones: ${error.message}")
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && snapshot.exists()) {
+                    // Convertir el documento a ClinicSettings usando mapper personalizado
+                    try {
+                        val rawData = snapshot.data ?: emptyMap()
+                        Log.d("REPO_SETTINGS", "Datos raw de Firebase: $rawData")
+                        val settings = mapDocumentToClinicSettings(rawData)
+                        Log.d("REPO_SETTINGS", "Settings mapeadas: sunday.isOpen=${settings.sunday.isOpen}, monday.isOpen=${settings.monday.isOpen}")
+                        trySend(settings)
+                    } catch (e: Exception) {
+                        Log.e("REPO_SETTINGS", "Error mapeando configuraciones", e)
+                        trySend(ClinicSettings())
+                    }
+                } else {
+                    // Si no existe (primera vez que abres la app), mandamos los valores por defecto
+                    Log.d("REPO_SETTINGS", "Documento de settings no existe, usando valores por defecto")
+                    trySend(ClinicSettings())
+                }
+            }
+
+        awaitClose { listener.remove() }
+    }
+
+    override suspend fun saveClinicSettings(settings: ClinicSettings): Result<Boolean> {
+        return try {
+            Log.d("REPO_SETTINGS", "Guardando settings: sunday.isOpen=${settings.sunday.isOpen}, monday.isOpen=${settings.monday.isOpen}")
+            val data = mapClinicSettingsToDocument(settings)
+            Log.d("REPO_SETTINGS", "Datos para guardar en Firebase: $data")
+            db.collection("settings").document("working_hours")
+                .set(data)
+                .await()
+            Log.d("REPO_SETTINGS", "Settings guardadas exitosamente")
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e("REPO_SETTINGS", "Error guardando settings", e)
+            Result.failure(e)
+        }
+    }
+
+    // Mappers personalizados para ClinicSettings
+    private fun mapClinicSettingsToDocument(settings: ClinicSettings): Map<String, Any> {
+        return mapOf(
+            "monday" to mapDayScheduleToMap(settings.monday),
+            "tuesday" to mapDayScheduleToMap(settings.tuesday),
+            "wednesday" to mapDayScheduleToMap(settings.wednesday),
+            "thursday" to mapDayScheduleToMap(settings.thursday),
+            "friday" to mapDayScheduleToMap(settings.friday),
+            "saturday" to mapDayScheduleToMap(settings.saturday),
+            "sunday" to mapDayScheduleToMap(settings.sunday)
+        )
+    }
+
+    private fun mapDayScheduleToMap(day: com.flores.agendapodologia.model.DaySchedule): Map<String, Any> {
+        return mapOf(
+            "isOpen" to day.isOpen,
+            "shift1Start" to day.shift1Start,
+            "shift1End" to day.shift1End,
+            "hasShift2" to day.hasShift2,
+            "shift2Start" to day.shift2Start,
+            "shift2End" to day.shift2End
+        )
+    }
+
+    private fun mapDocumentToClinicSettings(data: Map<String, Any>): ClinicSettings {
+        return ClinicSettings(
+            monday = mapToDaySchedule(data["monday"]),
+            tuesday = mapToDaySchedule(data["tuesday"]),
+            wednesday = mapToDaySchedule(data["wednesday"]),
+            thursday = mapToDaySchedule(data["thursday"]),
+            friday = mapToDaySchedule(data["friday"]),
+            saturday = mapToDaySchedule(data["saturday"]),
+            sunday = mapToDaySchedule(data["sunday"])
+        )
+    }
+
+    private fun mapToDaySchedule(value: Any?): com.flores.agendapodologia.model.DaySchedule {
+        if (value !is Map<*, *>) {
+            return com.flores.agendapodologia.model.DaySchedule()
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        val map = value as Map<String, Any>
+
+        return com.flores.agendapodologia.model.DaySchedule(
+            isOpen = (map["isOpen"] as? Boolean) ?: true,
+            shift1Start = (map["shift1Start"] as? Number)?.toInt() ?: 10,
+            shift1End = (map["shift1End"] as? Number)?.toInt() ?: 14,
+            hasShift2 = (map["hasShift2"] as? Boolean) ?: true,
+            shift2Start = (map["shift2Start"] as? Number)?.toInt() ?: 16,
+            shift2End = (map["shift2End"] as? Number)?.toInt() ?: 20
+        )
     }
 }

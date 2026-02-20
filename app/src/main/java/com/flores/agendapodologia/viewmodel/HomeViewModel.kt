@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.flores.agendapodologia.data.repository.AgendaRepository
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.AppointmentStatus
+import com.flores.agendapodologia.model.ClinicSettings
 import com.flores.agendapodologia.model.Patient
 import com.flores.agendapodologia.model.PatientStatus
 import com.flores.agendapodologia.model.PaymentMethod
@@ -331,6 +332,33 @@ class HomeViewModel(
                 // Nunca ha pagado o es nuevo
                 _warrantyStatus.value = WarrantyState(isActive = false)
             }
+        }
+    }
+
+    // Estado para la configuración de la clínica
+    private val _clinicSettings = MutableStateFlow(ClinicSettings())
+    val clinicSettings = _clinicSettings.asStateFlow()
+
+    init {
+        // En tu bloque init existente, agrega esta llamada:
+        subscribeToSettings()
+        // subscribeToPatients() (esto ya lo tenías)
+        // loadAppointmentsForDate(...) (esto ya lo tenías)
+    }
+
+    private fun subscribeToSettings() {
+        viewModelScope.launch {
+            repository.getClinicSettings().collect { settings ->
+                _clinicSettings.value = settings
+            }
+        }
+    }
+
+    // Función para cuando hagamos la pantalla de guardar cambios
+    fun updateSettings(newSettings: ClinicSettings, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            repository.saveClinicSettings(newSettings)
+                .onSuccess { onSuccess() }
         }
     }
 

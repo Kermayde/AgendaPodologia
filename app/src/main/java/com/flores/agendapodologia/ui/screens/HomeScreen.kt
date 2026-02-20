@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,12 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.ui.components.AppointmentCard
 import com.flores.agendapodologia.ui.components.DailySummaryCard
 import com.flores.agendapodologia.ui.components.DatePickerModal
 import com.flores.agendapodologia.ui.components.PatientItem
 import com.flores.agendapodologia.ui.components.WeekCalendar
+import com.flores.agendapodologia.ui.navigation.AppScreens
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar // Para sumar/restar días
@@ -47,12 +50,14 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onAddClick: () -> Unit,
     onAppointmentClick: (Appointment) -> Unit,
-    onOpenDirectory: () -> Unit
+    onOpenDirectory: () -> Unit,
+    navController: NavController
 ) {
     // 1. Observamos las Citas y la Fecha seleccionada
     val appointments by viewModel.appointments.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val dailySummary by viewModel.dailySummary.collectAsState()
+    val clinicSettings by viewModel.clinicSettings.collectAsState()
 
     // Estado para el selector de mes (TopBar)
     var showMonthPicker by remember { mutableStateOf(false) }
@@ -85,6 +90,9 @@ fun HomeScreen(
                     actions = {
                         IconButton(onClick = onOpenDirectory) {
                             Icon(Icons.Default.Person, "Directorio", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                        IconButton(onClick = { navController.navigate(AppScreens.Settings.route) }) { // <-- Asegúrate de pasar una función lambda 'onOpenSettings: () -> Unit' en los parámetros de HomeScreen, o usa el navController si lo tienes a la mano ahí.
+                            Icon(Icons.Default.Settings, "Configuración", tint = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
                 )
@@ -123,15 +131,14 @@ fun HomeScreen(
             }
 
             // 2. MOSTRAR LA LÍNEA DE TIEMPO
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.weight(1f)) {
                 TimelineScreen(
                     selectedDate = selectedDate,
                     appointments = appointments,
+                    clinicSettings = clinicSettings,
                     onAppointmentClick = onAppointmentClick,
                     onAddAtHourClick = { clickedHour ->
-                        // 1. Guardamos la hora y fecha exacta que el usuario tocó
                         viewModel.setPreselectedTime(selectedDate, clickedHour)
-                        // 2. Navegamos a la pantalla de Nueva Cita
                         onAddClick()
                     }
                 )
