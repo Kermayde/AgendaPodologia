@@ -366,12 +366,13 @@ class HomeViewModel(
         isPaid: Boolean,
         paymentMethod: PaymentMethod,
         amountCharged: Double, // <--- NUEVO PARÁMETRO
+        usedWarranty: Boolean = false,
         onSuccess: () -> Unit
     ) {
         val currentAppt = _currentDetailAppointment.value ?: return
 
         viewModelScope.launch {
-            repository.finishAppointment(currentAppt.id, isPaid, paymentMethod, amountCharged)
+            repository.finishAppointment(currentAppt.id, isPaid, paymentMethod, amountCharged, usedWarranty)
                 .onSuccess {
                     // Actualizamos el estado local
                     _currentDetailAppointment.value = currentAppt.copy(
@@ -380,6 +381,8 @@ class HomeViewModel(
                         paymentMethod = paymentMethod,
                         amountCharged = amountCharged, // <--- ACTUALIZAMOS LOCALMENTE
                         completedAt = java.util.Date()
+                        ,
+                        usedWarranty = usedWarranty
                     )
                     onSuccess()
                 }
@@ -471,4 +474,3 @@ data class DailySummary(
     val cashFormatted: String get() = NumberFormat.getCurrencyInstance().format(cash)
     val bankFormatted: String get() = NumberFormat.getCurrencyInstance().format(cardAndTransfer)
 }
-

@@ -1,6 +1,5 @@
 package com.flores.agendapodologia.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -30,6 +30,7 @@ import com.flores.agendapodologia.ui.components.ServiceSelector
 import com.flores.agendapodologia.ui.components.StatusSelector
 import com.flores.agendapodologia.ui.components.TimePickerModal
 import com.flores.agendapodologia.ui.components.WarrantyBanner
+import com.flores.agendapodologia.util.ServiceConstants
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -236,10 +237,13 @@ fun AppointmentDetailScreen(
 
             } else {
                 // 1. Banner de Garantía (Lo ponemos al principio para que sea evidente)
-                WarrantyBanner(warrantyState = warrantyState)
+                // Mostrar banner SOLO si la cita actual es del tipo que aplica garantía (por ejemplo: Correcciones)
+                if (warrantyState.isActive && appointment?.serviceType == ServiceConstants.WARRANTY_APPLICABLE_SERVICE) {
+                    WarrantyBanner(warrantyState = warrantyState)
+                }
 
                 // 2. Si la cita actual es de "Correcciones" y hay garantía, avisamos que es GRATIS
-                if (appointment?.serviceType == "Correcciones" && warrantyState.isActive) {
+                if (appointment?.serviceType == ServiceConstants.WARRANTY_APPLICABLE_SERVICE && warrantyState.isActive) {
                     Text(
                         text = "✨ Esta cita no debería tener costo por garantía.",
                         color = MaterialTheme.colorScheme.primary,
@@ -270,13 +274,23 @@ fun AppointmentDetailScreen(
                             ) {
                                 Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.List, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.AutoMirrored.Filled.List, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = dateFormat.format(pastAppointment.date),
                                             fontWeight = FontWeight.Bold,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
+                                        // Indicador si esta cita usó garantía
+                                        if (pastAppointment.usedWarranty) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "[POR GARANTÍA]",
+                                                color = Color(0xFF2E7D32), // verde
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
@@ -311,7 +325,7 @@ fun AppointmentDetailScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                Divider()
+                androidx.compose.material3.HorizontalDivider()
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // SECCIÓN 2: Sesión Actual (Lo importante)
@@ -353,12 +367,25 @@ fun AppointmentDetailScreen(
     if (showFinishDialog) {
         FinishAppointmentDialog(
             serviceType = appointment?.serviceType ?: "Otro", // <--- LE PASAMOS EL SERVICIO
-            isWarrantyActive = warrantyState.isActive && appointment?.serviceType == "Correcciones",
+            // La garantía solo debe aplicarse para el servicio aplicable (Correcciones)
+            isWarrantyActive = warrantyState.isActive && appointment?.serviceType == ServiceConstants.WARRANTY_APPLICABLE_SERVICE,
             onDismiss = { showFinishDialog = false },
-            onConfirm = { isPaid, method, amount -> // <--- AHORA RECIBIMOS amount
-                viewModel.finishAppointment(isPaid, method, amount) {
+            onConfirm = { isPaid, method, amount, overrideReason -> // Ahora recibimos overrideReason
+                // Calculamos si se está usando la garantía en esta finalización:
+                val usedWarranty = (!isPaid) && (warrantyState.isActive && appointment?.serviceType == ServiceConstants.WARRANTY_APPLICABLE_SERVICE)
+
+                // Si se proporciona overrideReason, lo adjuntamos a las notas al finalizar
+                viewModel.finishAppointment(isPaid, method, amount, usedWarranty) {
+                    // Si hay una razon de override y no está vacía, concatenamos a las notas existente
+                    if (overrideReason.isNotBlank()) {
+                        val current = viewModel.currentDetailAppointment.value
+                        if (current != null) {
+                            val newNotes = (current.notes.ifEmpty { "" } + "\n[Override reason]: " + overrideReason).trim()
+                            viewModel.saveNotes(newNotes) { /* no-op */ }
+                        }
+                    }
+
                     showFinishDialog = false
-                    // onBack() // Descomenta esto si quieres que se salga de la pantalla al terminar
                 }
             }
         )

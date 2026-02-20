@@ -374,7 +374,8 @@ class AgendaRepositoryImpl(
         appointmentId: String,
         isPaid: Boolean,
         paymentMethod: PaymentMethod,
-        amountCharged: Double
+        amountCharged: Double,
+        usedWarranty: Boolean
     ): Result<Boolean> {
         return try {
             val updates = mapOf(
@@ -382,7 +383,9 @@ class AgendaRepositoryImpl(
                 "paid" to isPaid,
                 "paymentMethod" to paymentMethod,
                 "amountCharged" to amountCharged,
-                "completedAt" to java.util.Date()
+                "completedAt" to java.util.Date(),
+                // Guardamos si se usó la garantía en esta cita
+                "usedWarranty" to usedWarranty
             )
 
             db.collection("appointments").document(appointmentId)

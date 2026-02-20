@@ -93,7 +93,7 @@ fun AppointmentCard(
                 }
 
                 // Separador vertical
-                androidx.compose.material3.HorizontalDivider(
+                HorizontalDivider(
                     modifier = Modifier
                         .height(40.dp)
                         .width(1.dp),
@@ -115,6 +115,24 @@ fun AppointmentCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    // Indicador si esta cita usó garantía (badge verde)
+                    if (appointment.usedWarranty) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Surface(
+                            color = Color(0xFFE8F5E9),
+                            shape = RoundedCornerShape(8.dp),
+                            tonalElevation = 0.dp
+                        ) {
+                            Text(
+                                text = "POR GARANTÍA",
+                                color = Color(0xFF2E7D32),
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
                 }
 
                 // COLUMNA 3: PODÓLOGO (Badge)

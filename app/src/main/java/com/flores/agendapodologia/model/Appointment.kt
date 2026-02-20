@@ -30,7 +30,10 @@ data class Appointment(
     val notes: String = "",
 
     // Campo para identificar bloqueos personales
-    val isBlockout: Boolean = false
+    val isBlockout: Boolean = false,
+
+    // NUEVO: Indica si en esta cita se usó la garantía (ej: correcciones gratis)
+    val usedWarranty: Boolean = false
 )
 
 // Enums para evitar errores de dedo ("Efectivo" vs "efectivo")

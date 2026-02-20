@@ -24,7 +24,7 @@ interface AgendaRepository {
     suspend fun updatePatientStatus(patientId: String, status: PatientStatus): Result<Boolean>
     suspend fun updatePatientAndHistory(patient: Patient): Result<Boolean>
     suspend fun getLastPaidWarrantyAppointment(patientId: String): Appointment?
-    suspend fun finishAppointment(appointmentId: String, isPaid: Boolean, paymentMethod: PaymentMethod, amountCharged: Double): Result<Boolean>
+    suspend fun finishAppointment(appointmentId: String, isPaid: Boolean, paymentMethod: PaymentMethod, amountCharged: Double, usedWarranty: Boolean = false): Result<Boolean>
     suspend fun updateAppointment(appointment: Appointment): Result<Boolean>
     suspend fun deleteAppointment(appointmentId: String): Result<Boolean>
     suspend fun addAppointmentOnly(appointment: Appointment): Result<Boolean>
