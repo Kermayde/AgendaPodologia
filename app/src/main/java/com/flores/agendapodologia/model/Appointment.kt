@@ -27,7 +27,10 @@ data class Appointment(
     // NUEVO CAMPO: Lo que realmente se cobró en esta cita específica
     val amountCharged: Double = 0.0,
 
-    val notes: String = ""
+    val notes: String = "",
+
+    // Campo para identificar bloqueos personales
+    val isBlockout: Boolean = false
 )
 
 // Enums para evitar errores de dedo ("Efectivo" vs "efectivo")

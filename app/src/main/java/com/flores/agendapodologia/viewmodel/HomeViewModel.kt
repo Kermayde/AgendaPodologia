@@ -419,7 +419,8 @@ class HomeViewModel(
                 date = Date(date),
                 status = AppointmentStatus.FINALIZADA, // Lo marcamos finalizado para que no pida cobrarlo
                 isPaid = false,
-                amountCharged = 0.0
+                amountCharged = 0.0,
+                isBlockout = true  // Marca explícitamente como bloqueo personal
             )
 
             repository.addAppointmentOnly(appointment)

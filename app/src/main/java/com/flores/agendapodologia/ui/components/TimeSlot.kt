@@ -10,10 +10,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flores.agendapodologia.model.Appointment
+import java.util.*
 
 @Composable
 fun TimeSlot(
@@ -36,7 +36,7 @@ fun TimeSlot(
             horizontalAlignment = Alignment.End
         ) {
             Text(
-                text = String.format("%02d:00", hour),
+                text = String.format(Locale.getDefault(), "%02d:00", hour),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.Gray,
                 fontSize = 12.sp
@@ -44,15 +44,21 @@ fun TimeSlot(
         }
 
         // COLUMNA 2: El Contenido (Citas o Hueco)
+        // Detectar si hay bloqueos personales
+        val hasBlockout = appointments.any { it.isBlockout }
+        val backgroundColor = when {
+            !isWorkingHour -> Color(0xFFEEEEEE)      // Gris: no laboral
+            hasBlockout -> Color(0xFFFFB74D).copy(alpha = 0.3f)  // Naranja claro: bloqueado
+            else -> Color.Transparent  // Transparente: disponible
+        }
+        val isClickable = isWorkingHour && !hasBlockout  // No clickeable si hay bloqueo
+
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .background(
-                    if (isWorkingHour) Color.Transparent
-                    else Color(0xFFEEEEEE) // Gris si no es horario laboral
-                )
-                .clickable { if (isWorkingHour) onSlotClick(hour) }
+                .background(backgroundColor)
+                .clickable(enabled = isClickable) { if (isClickable) onSlotClick(hour) }
         ) {
             Column {
                 // Línea separadora superior
@@ -68,9 +74,21 @@ fun TimeSlot(
                     }
                 } else {
                     // Si está vacío
-                    if (isWorkingHour) {
+                    if (isWorkingHour && !hasBlockout) {
                         // Espacio vacío "Disponible"
                         Box(modifier = Modifier.height(60.dp).fillMaxWidth())
+                    } else if (hasBlockout) {
+                        // Espacio bloqueado
+                        Box(
+                            modifier = Modifier.height(40.dp).fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Horario Bloqueado",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFFFA500)
+                            )
+                        }
                     } else {
                         // Espacio "Cerrado"
                         Box(
