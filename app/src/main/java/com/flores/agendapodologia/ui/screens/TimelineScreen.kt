@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.ClinicSettings
@@ -29,9 +30,17 @@ fun TimelineScreen(
     // Estado del scroll
     val listState = rememberLazyListState()
 
-    // AUTO-SCROLL A LA HORA ACTUAL
-    LaunchedEffect(Unit) {
-        val calendar = Calendar.getInstance()
+    // MEJORA 2: Agrupar citas por hora UNA SOLA VEZ (optimización)
+    val appointmentsByHour = remember(appointments) {
+        appointments.groupBy { appt ->
+            Calendar.getInstance().apply { time = appt.date }
+                .get(Calendar.HOUR_OF_DAY)
+        }
+    }
+
+    // MEJORA 1: AUTO-SCROLL A LA HORA ACTUAL (reactivo a cambios de fecha)
+    LaunchedEffect(selectedDate) {  // Se ejecuta cuando cambia selectedDate
+        val calendar = Calendar.getInstance().apply { timeInMillis = selectedDate }
         val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
 
         if (currentHour in startVisualHour..endVisualHour) {
@@ -50,17 +59,19 @@ fun TimelineScreen(
         items(hours.size) { index ->
             val hour = hours[index]
 
-            // Filtramos las citas que ocurren en ESTA hora (ej: 10:00 - 10:59)
-            val appointmentsInThisHour = appointments.filter { appt ->
-                val cal = Calendar.getInstance().apply { time = appt.date }
-                cal.get(Calendar.HOUR_OF_DAY) == hour
-            }
+            // MEJORA 3: Detectar si es la hora actual para mostrar indicador visual
+            val isCurrentHour = hour == Calendar.getInstance()
+                .get(Calendar.HOUR_OF_DAY)
+
+            // Usar las citas pre-agrupadas para mejor performance
+            val appointmentsInThisHour = appointmentsByHour[hour] ?: emptyList()
 
             TimeSlot(
                 hour = hour,
                 // AHORA USAMOS LA CONFIGURACIÓN DINÁMICA DE FIREBASE
                 isWorkingHour = clinicSettings.isWorkingHour(selectedDate, hour),
                 appointments = appointmentsInThisHour,
+                isCurrentHour = isCurrentHour,  // MEJORA 3: Pasar indicador
                 onAppointmentClick = onAppointmentClick,
                 onSlotClick = { clickedHour -> onAddAtHourClick(clickedHour) }
             )

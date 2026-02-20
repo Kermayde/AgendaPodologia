@@ -20,6 +20,7 @@ fun TimeSlot(
     hour: Int,
     isWorkingHour: Boolean,
     appointments: List<Appointment>,
+    isCurrentHour: Boolean = false,  // MEJORA 3: Parámetro nuevo para indicar hora actual
     onAppointmentClick: (Appointment) -> Unit,
     onSlotClick: (Int) -> Unit // Para agendar rápido en esta hora (Futuro)
 ) {
@@ -27,6 +28,11 @@ fun TimeSlot(
         modifier = Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min) // Altura dinámica según contenido
+            // MEJORA 3: Resaltar la hora actual con fondo azul claro
+            .background(
+                if (isCurrentHour) Color(0xFFE3F2FD).copy(alpha = 0.5f)
+                else Color.Transparent
+            )
     ) {
         // COLUMNA 1: La Hora (ej: 10:00)
         Column(
@@ -38,11 +44,24 @@ fun TimeSlot(
             Text(
                 text = String.format(Locale.getDefault(), "%02d:00", hour),
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.Gray,
-                fontSize = 12.sp
+                // MEJORA 3: Color azul y negrita si es hora actual
+                color = if (isCurrentHour) Color.Blue else Color.Gray,
+                fontSize = 12.sp,
+                fontWeight = if (isCurrentHour) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
             )
+            // MEJORA 3: Mostrar texto "AHORA" debajo de la hora si es la hora actual
+            if (isCurrentHour) {
+                Text(
+                    text = "AHORA",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Blue,
+                    fontSize = 9.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
+            }
         }
 
+        // ... resto del código sin cambios ...
         // COLUMNA 2: El Contenido (Citas o Hueco)
         // Detectar si hay bloqueos personales
         val hasBlockout = appointments.any { it.isBlockout }
