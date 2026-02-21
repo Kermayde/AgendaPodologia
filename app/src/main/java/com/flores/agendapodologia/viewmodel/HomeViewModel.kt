@@ -76,6 +76,18 @@ class HomeViewModel(
     private val _selectedDate = MutableStateFlow(System.currentTimeMillis())
     val selectedDate = _selectedDate.asStateFlow()
 
+    // Estado para el mes/año mostrado en el grid (independiente de selectedDate)
+    // Almacenamos como par de (year, month) donde month es 0-11 (Calendar.JANUARY = 0)
+    private val _displayedMonth = MutableStateFlow<Pair<Int, Int>>(run {
+        val cal = Calendar.getInstance()
+        Pair(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    })
+    val displayedMonth = _displayedMonth.asStateFlow()
+
+    // Estado para expandir/colapsar el selector de calendario
+    private val _isCalendarExpanded = MutableStateFlow(false)
+    val isCalendarExpanded = _isCalendarExpanded.asStateFlow()
+
     // Estado para las citas de ESE día
     private val _appointments = MutableStateFlow<List<Appointment>>(emptyList())
     val appointments = _appointments.asStateFlow()
@@ -88,6 +100,35 @@ class HomeViewModel(
     fun changeDate(newDate: Long) {
         _selectedDate.value = newDate
         loadAppointmentsForDate(newDate)
+    }
+
+    // Función para cambiar el mes mostrado en el grid
+    fun changeDisplayedMonth(year: Int, month: Int) {
+        _displayedMonth.value = Pair(year, month)
+    }
+
+    // Función para avanzar/retroceder un mes
+    fun moveMonth(forward: Boolean) {
+        val (year, month) = _displayedMonth.value
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month)
+            if (forward) {
+                add(Calendar.MONTH, 1)
+            } else {
+                add(Calendar.MONTH, -1)
+            }
+        }
+        _displayedMonth.value = Pair(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    }
+
+    // Función para toggle expandir/colapsar
+    fun toggleCalendarExpanded() {
+        _isCalendarExpanded.value = !_isCalendarExpanded.value
+    }
+
+    fun setCalendarExpanded(expanded: Boolean) {
+        _isCalendarExpanded.value = expanded
     }
 
     private fun loadAppointmentsForDate(date: Long) {
