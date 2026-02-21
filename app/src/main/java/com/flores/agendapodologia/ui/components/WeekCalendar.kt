@@ -46,23 +46,16 @@ fun WeekCalendar(
     val weeks = remember {
         val weeksList = mutableListOf<Long>()
         val baseCalendar = Calendar.getInstance().apply {
+            // Empezar desde el lunes de la semana actual
             timeInMillis = getWeekStartDate(System.currentTimeMillis())
+            // Retroceder 52 semanas para empezar la lista desde ahí
+            add(Calendar.WEEK_OF_YEAR, -52)
         }
 
-        // Ir 52 semanas hacia atrás
-        repeat(52) {
-            weeksList.add(0, baseCalendar.timeInMillis)
-            baseCalendar.add(Calendar.WEEK_OF_YEAR, -1)
-        }
-
-        // Agregar la semana actual
-        baseCalendar.apply { timeInMillis = getWeekStartDate(System.currentTimeMillis()) }
-        weeksList.add(baseCalendar.timeInMillis)
-
-        // Ir 52 semanas hacia adelante
-        repeat(52) {
-            baseCalendar.add(Calendar.WEEK_OF_YEAR, 1)
+        // Agregar 105 semanas en total (52 atrás + 1 actual + 52 adelante)
+        repeat(105) {
             weeksList.add(baseCalendar.timeInMillis)
+            baseCalendar.add(Calendar.WEEK_OF_YEAR, 1)
         }
 
         weeksList
@@ -70,11 +63,10 @@ fun WeekCalendar(
 
     // Encontrar el índice de la semana actual
     val weekIndex = remember(currentWeekStartDate) {
-        weeks.indexOfFirst { week ->
+        val index = weeks.indexOfFirst { week ->
             getWeekStartDate(week) == currentWeekStartDate
-        }.let { index ->
-            if (index >= 0) index else 52 // Por defecto, la semana actual
         }
+        if (index >= 0) index else 52 // 52 es el centro de la lista (semana actual)
     }
 
     val pagerState = rememberPagerState(
