@@ -105,6 +105,19 @@ class HomeViewModel(
     // Función para cambiar el mes mostrado en el grid
     fun changeDisplayedMonth(year: Int, month: Int) {
         _displayedMonth.value = Pair(year, month)
+
+        // Actualizar la fecha seleccionada al primer día del mes seleccionado
+        val firstDayOfMonth = Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        changeDate(firstDayOfMonth)
     }
 
     // Función para avanzar/retroceder un mes

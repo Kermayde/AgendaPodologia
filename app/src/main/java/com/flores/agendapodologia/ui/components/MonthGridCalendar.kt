@@ -15,7 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.text.SimpleDateFormat
+import kotlinx.coroutines.launch
 import java.util.*
 
 @Composable
@@ -44,12 +44,25 @@ fun MonthGridCalendar(
         pageCount = { totalMonths }
     )
 
+    val coroutineScope = rememberCoroutineScope()
+
     // Observar cambios en el pagerState para actualizar el mes mostrado
     LaunchedEffect(pagerState.currentPage) {
         val monthOffset = pagerState.currentPage - middleIndex
         val newYear = baseYear + (monthOffset / 12)
         val newMonth = ((monthOffset % 12) + 12) % 12
         onMonthChanged(newYear, newMonth)
+    }
+
+    // Sincronizar el pager cuando cambia displayedMonth desde el carrusel
+    LaunchedEffect(displayedYear, displayedMonth) {
+        val targetIndex = (displayedYear - baseYear) * 12 + (displayedMonth - baseMonth) + middleIndex
+        // Solo animar si es diferente al actual
+        if (pagerState.currentPage != targetIndex) {
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(targetIndex)
+            }
+        }
     }
 
     HorizontalPager(

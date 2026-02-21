@@ -31,10 +31,7 @@ fun ExpandableCalendarContainer(
             onOpenDirectory = onOpenDirectory,
             onOpenSettings = onOpenSettings
         )
-
-
-
-        // 3. Grid mensual + Carrusel (solo cuando expandido)
+        // 2. Grid mensual + Carrusel (solo cuando expandido)
         AnimatedVisibility(
             visible = isExpanded,
             enter = expandVertically(
@@ -80,7 +77,7 @@ fun ExpandableCalendarContainer(
                 }
             }
         }
-        // 2. Tira semanal (siempre visible)
+        // 3. Tira semanal (siempre visible)
         Surface(
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = 2.dp,

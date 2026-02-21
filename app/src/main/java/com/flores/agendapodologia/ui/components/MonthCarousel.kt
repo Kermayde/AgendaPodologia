@@ -33,6 +33,10 @@ fun MonthCarousel(
     val baseYear = displayedYear - 1
     for (y in baseYear..displayedYear + 2) {
         for (m in 0..11) {
+            // Insertar separador de año antes de enero
+            if (m == 0 && y > baseYear) {
+                monthsWithYear.add(MonthCarouselItem.YearSeparator(y))
+            }
             monthsWithYear.add(MonthCarouselItem.Month(y, m))
         }
     }
@@ -40,14 +44,26 @@ fun MonthCarousel(
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // Encontrar el índice del mes actual y scrollear a él
+    // Encontrar el índice del mes actual y scrollear solo si no es visible
     LaunchedEffect(displayedYear, displayedMonth) {
         val targetIndex = monthsWithYear.indexOfFirst {
             it is MonthCarouselItem.Month && it.year == displayedYear && it.month == displayedMonth
         }
         if (targetIndex >= 0) {
             coroutineScope.launch {
-                lazyListState.animateScrollToItem(targetIndex, -50)
+                val layoutInfo = lazyListState.layoutInfo
+                val visibleItemsInfo = layoutInfo.visibleItemsInfo
+
+                // Verificar si el elemento está dentro de los visibles
+                val isVisible = visibleItemsInfo.any { it.index == targetIndex }
+
+                if (!isVisible) {
+                    // Solo animar si no es visible - hacer scroll al centro
+                    lazyListState.animateScrollToItem(
+                        index = targetIndex,
+                        scrollOffset = -150 // Centrar aproximadamente
+                    )
+                }
             }
         }
     }
@@ -109,31 +125,21 @@ fun MonthCarousel(
                 }
 
                 is MonthCarouselItem.YearSeparator -> {
-                    Column(
+                    Box(
                         modifier = Modifier
-                            .padding(horizontal = 2.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        HorizontalDivider(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(20.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.outline
-                        )
                         Text(
                             text = item.year.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 8.sp,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(20.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.outline
+                            style = MaterialTheme.typography.labelMedium,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
