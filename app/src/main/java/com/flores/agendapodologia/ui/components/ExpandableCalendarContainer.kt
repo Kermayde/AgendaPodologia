@@ -17,6 +17,8 @@ fun ExpandableCalendarContainer(
     onToggleExpanded: () -> Unit,
     onDateSelected: (Long) -> Unit,
     onMonthChanged: (year: Int, month: Int) -> Unit,
+    onWeekMonthChanged: (year: Int, month: Int) -> Unit,
+    onGoToToday: () -> Unit,
     onOpenDirectory: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
@@ -28,6 +30,7 @@ fun ExpandableCalendarContainer(
             selectedDate = selectedDate,
             isExpanded = isExpanded,
             onToggleExpanded = onToggleExpanded,
+            onGoToToday = onGoToToday,
             onOpenDirectory = onOpenDirectory,
             onOpenSettings = onOpenSettings
         )
@@ -63,7 +66,8 @@ fun ExpandableCalendarContainer(
                         displayedMonth = displayedMonth.second,
                         selectedDate = selectedDate,
                         onDateSelected = onDateSelected,
-                        onMonthChanged = onMonthChanged
+                        onMonthChanged = onMonthChanged,
+                        onMonthChangedByPager = onWeekMonthChanged
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -85,7 +89,8 @@ fun ExpandableCalendarContainer(
         ) {
             WeekCalendar(
                 selectedDate = selectedDate,
-                onDateSelected = onDateSelected
+                onDateSelected = onDateSelected,
+                onWeekChanged = onWeekMonthChanged
             )
         }
     }

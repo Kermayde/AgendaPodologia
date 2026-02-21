@@ -52,6 +52,12 @@ fun HomeScreen(
                 onMonthChanged = { year, month ->
                     viewModel.changeDisplayedMonth(year, month)
                 },
+                onWeekMonthChanged = { year, month ->
+                    viewModel.updateDisplayedMonthFromWeek(year, month)
+                },
+                onGoToToday = {
+                    viewModel.goToToday()
+                },
                 onOpenDirectory = onOpenDirectory,
                 onOpenSettings = { navController.navigate(AppScreens.Settings.route) }
             )

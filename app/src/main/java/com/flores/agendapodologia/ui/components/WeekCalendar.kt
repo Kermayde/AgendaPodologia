@@ -3,8 +3,8 @@ package com.flores.agendapodologia.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,24 +15,121 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
 fun WeekCalendar(
     selectedDate: Long,
-    onDateSelected: (Long) -> Unit
+    onDateSelected: (Long) -> Unit,
+    onWeekChanged: (year: Int, month: Int) -> Unit = { _, _ -> } // Callback cuando la semana cambia de mes
 ) {
-    // Calculamos los días de la semana actual basada en selectedDate
-    val daysOfWeek = remember(selectedDate) {
-        val calendar = Calendar.getInstance().apply { timeInMillis = selectedDate }
-
-        // Vamos al lunes de esta semana
-        // (En USA el primer día es Domingo, en MX suele ser Lunes, ajustamos según Locale o forzamos)
+    // Calcular el lunes de la semana que contiene selectedDate
+    fun getWeekStartDate(dateMillis: Long): Long {
+        val calendar = Calendar.getInstance().apply { timeInMillis = dateMillis }
         val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
         val daysFromMonday = if (currentDayOfWeek == Calendar.SUNDAY) 6 else currentDayOfWeek - Calendar.MONDAY
         calendar.add(Calendar.DAY_OF_YEAR, -daysFromMonday)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        return calendar.timeInMillis
+    }
 
+    val currentWeekStartDate = remember(selectedDate) {
+        getWeekStartDate(selectedDate)
+    }
+
+    // Crear lista de semanas (52 semanas antes y después = ~2 años)
+    val weeks = remember {
+        val weeksList = mutableListOf<Long>()
+        val baseCalendar = Calendar.getInstance().apply {
+            timeInMillis = getWeekStartDate(System.currentTimeMillis())
+        }
+
+        // Ir 52 semanas hacia atrás
+        repeat(52) {
+            weeksList.add(0, baseCalendar.timeInMillis)
+            baseCalendar.add(Calendar.WEEK_OF_YEAR, -1)
+        }
+
+        // Agregar la semana actual
+        baseCalendar.apply { timeInMillis = getWeekStartDate(System.currentTimeMillis()) }
+        weeksList.add(baseCalendar.timeInMillis)
+
+        // Ir 52 semanas hacia adelante
+        repeat(52) {
+            baseCalendar.add(Calendar.WEEK_OF_YEAR, 1)
+            weeksList.add(baseCalendar.timeInMillis)
+        }
+
+        weeksList
+    }
+
+    // Encontrar el índice de la semana actual
+    val weekIndex = remember(currentWeekStartDate) {
+        weeks.indexOfFirst { week ->
+            getWeekStartDate(week) == currentWeekStartDate
+        }.let { index ->
+            if (index >= 0) index else 52 // Por defecto, la semana actual
+        }
+    }
+
+    val pagerState = rememberPagerState(
+        initialPage = weekIndex,
+        pageCount = { weeks.size }
+    )
+
+    val coroutineScope = rememberCoroutineScope()
+
+    // Observar cambios en el pager para detectar si cambia el mes
+    LaunchedEffect(pagerState.currentPage) {
+        val currentWeekDate = weeks[pagerState.currentPage]
+        val calendar = Calendar.getInstance().apply { timeInMillis = currentWeekDate }
+        onWeekChanged(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH))
+    }
+
+    // Sincronizar el pager cuando cambia selectedDate (solo si la semana es diferente)
+    LaunchedEffect(currentWeekStartDate) {
+        val targetIndex = weeks.indexOfFirst { week ->
+            getWeekStartDate(week) == currentWeekStartDate
+        }.let { index ->
+            if (index >= 0) index else pagerState.currentPage
+        }
+
+        if (pagerState.currentPage != targetIndex && targetIndex >= 0) {
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(targetIndex)
+            }
+        }
+    }
+
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) { pageIndex ->
+        val weekStartDate = weeks[pageIndex]
+        WeekRow(
+            weekStartDate = weekStartDate,
+            selectedDate = selectedDate,
+            onDateSelected = onDateSelected
+        )
+    }
+}
+
+@Composable
+private fun WeekRow(
+    weekStartDate: Long,
+    selectedDate: Long,
+    onDateSelected: (Long) -> Unit
+) {
+    // Obtener los 7 días de la semana
+    val daysOfWeek = remember(weekStartDate) {
+        val calendar = Calendar.getInstance().apply { timeInMillis = weekStartDate }
         val days = mutableListOf<Date>()
         repeat(7) {
             days.add(calendar.time)
@@ -41,16 +138,16 @@ fun WeekCalendar(
         days
     }
 
-    val dayNameFormat = SimpleDateFormat("EEE", Locale.getDefault()) // "Lun", "Mar"
-    val dayNumberFormat = SimpleDateFormat("d", Locale.getDefault())   // "12", "13"
+    val dayNameFormat = SimpleDateFormat("EEE", Locale.getDefault())
+    val dayNumberFormat = SimpleDateFormat("d", Locale.getDefault())
 
-    LazyRow(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        items(daysOfWeek) { date ->
+        daysOfWeek.forEach { date ->
             val isSelected = isSameDay(date.time, selectedDate)
 
             Column(
@@ -62,13 +159,13 @@ fun WeekCalendar(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = dayNameFormat.format(date).uppercase().take(3), // LUN
+                    text = dayNameFormat.format(date).uppercase().take(3),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary else Color.Gray
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = dayNumberFormat.format(date), // 23
+                    text = dayNumberFormat.format(date),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface

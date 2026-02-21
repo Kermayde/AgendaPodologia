@@ -99,10 +99,23 @@ class HomeViewModel(
 
     fun changeDate(newDate: Long) {
         _selectedDate.value = newDate
+
+        // Sincronizar el mes mostrado con la fecha seleccionada
+        val selectedCalendar = Calendar.getInstance().apply { timeInMillis = newDate }
+        val selectedYear = selectedCalendar.get(Calendar.YEAR)
+        val selectedMonth = selectedCalendar.get(Calendar.MONTH)
+
+        // Solo actualizar displayedMonth si ha cambiado
+        val currentDisplayedMonth = _displayedMonth.value
+        if (currentDisplayedMonth.first != selectedYear || currentDisplayedMonth.second != selectedMonth) {
+            _displayedMonth.value = Pair(selectedYear, selectedMonth)
+        }
+
         loadAppointmentsForDate(newDate)
     }
 
-    // Función para cambiar el mes mostrado en el grid
+    // Función para cambiar el mes cuando se selecciona en el carrusel
+    // Esto cambia la fecha seleccionada al primer día del mes
     fun changeDisplayedMonth(year: Int, month: Int) {
         _displayedMonth.value = Pair(year, month)
 
@@ -118,6 +131,12 @@ class HomeViewModel(
         }.timeInMillis
 
         changeDate(firstDayOfMonth)
+    }
+
+    // Función para actualizar el mes mostrado cuando cambia la semana (desde swipe en tira semanal)
+    // Esto NO cambia la fecha seleccionada, solo actualiza qué mes se muestra en el grid
+    fun updateDisplayedMonthFromWeek(year: Int, month: Int) {
+        _displayedMonth.value = Pair(year, month)
     }
 
     // Función para avanzar/retroceder un mes
@@ -142,6 +161,20 @@ class HomeViewModel(
 
     fun setCalendarExpanded(expanded: Boolean) {
         _isCalendarExpanded.value = expanded
+    }
+
+    // Función para ir al día actual
+    fun goToToday() {
+        val today = System.currentTimeMillis()
+        val todayCalendar = Calendar.getInstance().apply { timeInMillis = today }
+
+        // Actualizar la fecha seleccionada a hoy
+        changeDate(today)
+
+        // Actualizar el mes mostrado al mes actual
+        val currentYear = todayCalendar.get(Calendar.YEAR)
+        val currentMonth = todayCalendar.get(Calendar.MONTH)
+        _displayedMonth.value = Pair(currentYear, currentMonth)
     }
 
     private fun loadAppointmentsForDate(date: Long) {

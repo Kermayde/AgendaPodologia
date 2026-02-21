@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -21,6 +22,7 @@ fun ExpandableCalendarHeader(
     selectedDate: Long,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
+    onGoToToday: () -> Unit,
     onOpenDirectory: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
@@ -74,6 +76,13 @@ fun ExpandableCalendarHeader(
             titleContentColor = MaterialTheme.colorScheme.onPrimary
         ),
         actions = {
+            IconButton(onClick = onGoToToday) {
+                Icon(
+                    Icons.Default.Today,
+                    "Ir a Hoy",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
             IconButton(onClick = onOpenDirectory) {
                 Icon(
                     Icons.Default.Person,

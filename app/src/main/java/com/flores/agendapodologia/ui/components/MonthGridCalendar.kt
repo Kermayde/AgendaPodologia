@@ -24,7 +24,8 @@ fun MonthGridCalendar(
     displayedMonth: Int, // 0-11
     selectedDate: Long,
     onDateSelected: (Long) -> Unit,
-    onMonthChanged: (year: Int, month: Int) -> Unit
+    onMonthChanged: (year: Int, month: Int) -> Unit,
+    onMonthChangedByPager: (year: Int, month: Int) -> Unit = { _, _ -> } // Callback cuando cambia por pager
 ) {
     val totalMonths = 1200 // Rango amplio: ~100 años de meses
     val middleIndex = totalMonths / 2
@@ -46,12 +47,12 @@ fun MonthGridCalendar(
 
     val coroutineScope = rememberCoroutineScope()
 
-    // Observar cambios en el pagerState para actualizar el mes mostrado
+    // Observar cambios en el pagerState para actualizar el mes mostrado (solo actualizar displayedMonth, no selectedDate)
     LaunchedEffect(pagerState.currentPage) {
         val monthOffset = pagerState.currentPage - middleIndex
         val newYear = baseYear + (monthOffset / 12)
         val newMonth = ((monthOffset % 12) + 12) % 12
-        onMonthChanged(newYear, newMonth)
+        onMonthChangedByPager(newYear, newMonth)
     }
 
     // Sincronizar el pager cuando cambia displayedMonth desde el carrusel
