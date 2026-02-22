@@ -1,6 +1,7 @@
 package com.flores.agendapodologia.ui.components
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,6 +25,7 @@ fun ExpandableCalendarContainer(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
     ) {
         // 1. Header con ícono de expansión/colapso
         ExpandableCalendarHeader(
@@ -49,8 +51,7 @@ fun ExpandableCalendarContainer(
             ) + fadeOut()
         ) {
             Surface(
-                color = MaterialTheme.colorScheme.background,
-                shadowElevation = 4.dp,
+                color = MaterialTheme.colorScheme.surfaceContainer,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -58,7 +59,7 @@ fun ExpandableCalendarContainer(
                         .fillMaxWidth()
                         .padding(bottom = 16.dp)
                 ) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    //Spacer(modifier = Modifier.height(8.dp))
 
                     // Grid mensual con paginación
                     MonthGridCalendar(
@@ -70,7 +71,7 @@ fun ExpandableCalendarContainer(
                         onMonthChangedByPager = onWeekMonthChanged
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    //Spacer(modifier = Modifier.height(50.dp))
 
                     // Carrusel de meses
                     MonthCarousel(
@@ -83,8 +84,7 @@ fun ExpandableCalendarContainer(
         }
         // 3. Tira semanal (siempre visible)
         Surface(
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 2.dp,
+            color = MaterialTheme.colorScheme.surfaceContainer,
             modifier = Modifier.fillMaxWidth()
         ) {
             WeekCalendar(

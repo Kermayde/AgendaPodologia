@@ -58,6 +58,7 @@ fun PatientDetailScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "Editando Paciente" else "Detalle del Paciente") },

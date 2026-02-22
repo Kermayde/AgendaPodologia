@@ -33,6 +33,7 @@ fun PatientDirectoryScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             TopAppBar(
                 title = { Text("Directorio de Pacientes") },

@@ -5,11 +5,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -124,7 +126,7 @@ private fun MonthGridPage(
                         .padding(4.dp),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.outline,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -183,31 +185,32 @@ private fun MonthGridPage(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .aspectRatio(1f)
-                                .background(
-                                    color = if (isSelected)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        Color.Transparent,
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
-                                )
+                                .aspectRatio(1.4f)
                                 .clickable {
                                     onDateSelected(dayDate)
                                 }
                                 .padding(4.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = day.toString(),
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected)
-                                    MaterialTheme.colorScheme.onPrimary
-                                else
-                                    MaterialTheme.colorScheme.onSurface,
-                                fontSize = 14.sp
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(30.dp))
+                                    .size(27.dp)
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = day.toString(),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected)
+                                        MaterialTheme.colorScheme.onPrimary
+                                    else
+                                        MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     } else {
                         Spacer(modifier = Modifier.weight(1f))

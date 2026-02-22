@@ -1,6 +1,10 @@
 package com.flores.agendapodologia.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -11,6 +15,7 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
@@ -46,55 +51,60 @@ fun ExpandableCalendarHeader(
             // Título clickeable para expandir/colapsar
             TextButton(
                 onClick = onToggleExpanded,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
             ) {
                 Text(
                     text = monthYearFormat.format(Date(selectedDate))
                         .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // Ícono indicando expansión
-                Icon(
-                    imageVector = if (isExpanded)
-                        Icons.Default.KeyboardArrowUp
-                    else
-                        Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (isExpanded) "Colapsar" else "Expandir",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
+                Box(
+                    modifier = Modifier
+                        .clip( shape = MaterialTheme.shapes.medium )
+                        .width( 32.dp )
+                        .background( color = MaterialTheme.colorScheme.secondaryContainer ),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+
+                ) {
+                    Icon(
+                        imageVector = if (isExpanded)
+                            Icons.Default.KeyboardArrowUp
+                        else
+                            Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (isExpanded) "Colapsar" else "Expandir",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
         actions = {
             IconButton(onClick = onGoToToday) {
                 Icon(
                     Icons.Default.Today,
                     "Ir a Hoy",
-                    tint = MaterialTheme.colorScheme.onPrimary
+
                 )
             }
             IconButton(onClick = onOpenDirectory) {
                 Icon(
                     Icons.Default.Person,
                     "Directorio",
-                    tint = MaterialTheme.colorScheme.onPrimary
+
                 )
             }
             IconButton(onClick = onOpenSettings) {
                 Icon(
                     Icons.Default.Settings,
                     "Configuración",
-                    tint = MaterialTheme.colorScheme.onPrimary
+
                 )
             }
         }

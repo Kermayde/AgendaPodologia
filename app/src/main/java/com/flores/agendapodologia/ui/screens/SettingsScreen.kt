@@ -43,6 +43,9 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("Configuración de Horarios") },

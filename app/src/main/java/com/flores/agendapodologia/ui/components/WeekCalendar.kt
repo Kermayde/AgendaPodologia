@@ -1,6 +1,7 @@
 package com.flores.agendapodologia.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -102,7 +103,7 @@ fun WeekCalendar(
         state = pagerState,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 3.dp)
     ) { pageIndex ->
         val weekStartDate = weeks[pageIndex]
         WeekRow(
@@ -145,23 +146,33 @@ private fun WeekRow(
             Column(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+
                     .clickable { onDateSelected(date.time) }
-                    .padding(vertical = 8.dp, horizontal = 12.dp),
+                    .padding(vertical = 4.dp, horizontal = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = dayNameFormat.format(date).uppercase().take(3),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else Color.Gray
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = dayNumberFormat.format(date),
-                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                 )
+                Spacer(modifier = Modifier.height(1.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(30.dp))
+                        .size(36.dp)
+                        .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent),
+                    contentAlignment = Alignment.Center,
+
+                ) {
+                    Text(
+                        text = dayNumberFormat.format(date),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.outline
+                    )
+                }
             }
         }
     }

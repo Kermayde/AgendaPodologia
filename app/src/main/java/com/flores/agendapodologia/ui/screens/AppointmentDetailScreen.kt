@@ -84,6 +84,7 @@ fun AppointmentDetailScreen(
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "Editando Cita" else "Detalle de Cita") },

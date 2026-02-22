@@ -71,9 +71,9 @@ fun MonthCarousel(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp, horizontal = 16.dp),
+            .padding(vertical = 3.dp, horizontal = 16.dp),
         state = lazyListState,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         items(
             items = monthsWithYear,
@@ -98,10 +98,10 @@ fun MonthCarousel(
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape( if (isSelected) 30.dp else 8.dp))
                             .background(
                                 color = if (isSelected)
-                                    MaterialTheme.colorScheme.primary
+                                    MaterialTheme.colorScheme.secondaryContainer
                                 else
                                     MaterialTheme.colorScheme.surface
                             )
@@ -116,7 +116,7 @@ fun MonthCarousel(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             color = if (isSelected)
-                                MaterialTheme.colorScheme.onPrimary
+                                MaterialTheme.colorScheme.onSurface
                             else
                                 MaterialTheme.colorScheme.onSurface,
                             fontSize = 12.sp
@@ -128,16 +128,14 @@ fun MonthCarousel(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = item.year.toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.labelLarge,
+                            //fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

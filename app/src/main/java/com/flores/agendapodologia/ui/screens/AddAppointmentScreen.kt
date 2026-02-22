@@ -67,6 +67,7 @@ fun AddAppointmentScreen(
     val isBlockOut = serviceType == "Bloqueo Personal"
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             TopAppBar(
                 title = { Text("Nueva Cita") },
