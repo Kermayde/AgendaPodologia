@@ -4,14 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,10 +31,10 @@ fun TimeSlot(
             .fillMaxWidth()
             .height(IntrinsicSize.Min) // Altura dinámica según contenido
             // MEJORA 3: Resaltar la hora actual con fondo azul claro
-            .background(
-                if (isCurrentHour) Color(0xFFE3F2FD).copy(alpha = 0.5f)
-                else Color.Transparent
-            )
+//            .background(
+//                if (isCurrentHour) Color(0xFFE3F2FD).copy(alpha = 0.5f)
+//                else Color.Transparent
+//            )
     ) {
         // COLUMNA 1: La Hora (ej: 10:00)
         Column(
@@ -48,8 +46,7 @@ fun TimeSlot(
             Text(
                 text = String.format(Locale.getDefault(), "%02d:00", hour),
                 style = MaterialTheme.typography.labelMedium,
-                // MEJORA 3: Color azul y negrita si es hora actual
-                color = if (isCurrentHour) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
+                color = if (isCurrentHour) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
                 fontSize = 12.sp,
                 fontWeight = if (isCurrentHour) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
             )
@@ -58,29 +55,31 @@ fun TimeSlot(
                 Text(
                     text = "AHORA",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 9.sp,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 )
             }
         }
 
-        // ... resto del código sin cambios ...
         // COLUMNA 2: El Contenido (Citas o Hueco)
         // Detectar si hay bloqueos personales
         val hasBlockout = appointments.any { it.isBlockout }
+
+        // Definir el color de fondo según el estado de la hora
         val backgroundColor = when {
-            !isWorkingHour -> MaterialTheme.colorScheme.surfaceVariant  // Gris claro: cerrado
-            hasBlockout -> MaterialTheme.colorScheme.errorContainer  // Rojo claro: bloqueado
-            else -> MaterialTheme.colorScheme.surface  // Blanco: disponible
+            !isWorkingHour -> MaterialTheme.colorScheme.surfaceVariant  // Gris: fuera de horario laboral
+            hasBlockout -> Color(0xFFFFC107).copy(alpha = 0.2f)  // Amber claro: hora bloqueada
+            else -> MaterialTheme.colorScheme.surface  // Blanco/surface: hora libre/disponible o con citas sin bloqueo
         }
+
         val isClickable = isWorkingHour && !hasBlockout  // No clickeable si hay bloqueo
 
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                //.background(backgroundColor)
+                .background(backgroundColor)
                 .clickable(enabled = isClickable) { if (isClickable) onSlotClick(hour) }
         ) {
             Column {
@@ -95,9 +94,7 @@ fun TimeSlot(
                         modifier = Modifier
                             .fillMaxWidth()
                     )
-                }
-                else {
-                    //HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                } else {
                     Spacer(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -105,52 +102,22 @@ fun TimeSlot(
                     )
                 }
 
-                // Si hay citas y no hay citas bloqueadas, las mostramos apiladas
+                // SIEMPRE mostrar citas si existen
                 if (appointments.isNotEmpty()) {
                     // Si hay citas, las mostramos apiladas
                     appointments.forEach { appt ->
-                        Box(
-
-                            modifier = Modifier
-                                .clip(MaterialTheme.shapes.small)
-                                .fillMaxHeight()
-                                .background(backgroundColor)
-                        ) {
-                            AppointmentCard(
-                                appointment = appt,
-                                onClick = { onAppointmentClick(appt) }
-                            )
-                        }
+                        AppointmentCard(
+                            appointment = appt,
+                            onClick = { onAppointmentClick(appt) }
+                        )
                     }
                 } else {
-                    // Si está vacío
-                    if (isWorkingHour && !hasBlockout) {
-                        // Espacio vacío "Disponible"
-                        Box(modifier = Modifier
-                            .clip(MaterialTheme.shapes.small)
-                            .height(60.dp)
-                            .fillMaxWidth()
-                            .background(backgroundColor),)
-                    } else if (hasBlockout) {
-                        // Espacio bloqueado
+                    // Si NO hay citas, mostrar un espacio vacío con el mensaje correspondiente
+                    if (!isWorkingHour) {
+                        // Fuera de horario laboral: mostrar "No Disponible"
                         Box(
                             modifier = Modifier
-                                .height(40.dp)
-                                .background(MaterialTheme.colorScheme.errorContainer)
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "Horario Bloqueado",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFFFA500)
-                            )
-                        }
-                    } else {
-                        // Espacio "Cerrado"
-                        Box(
-                            modifier = Modifier
-                                .height(40.dp)
+                                .height(60.dp)
                                 .fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
@@ -160,6 +127,27 @@ fun TimeSlot(
                                 color = Color.Gray.copy(alpha = 0.5f)
                             )
                         }
+                    } else if (hasBlockout) {
+                        // Hora bloqueada: mostrar "Horario Bloqueado"
+                        Box(
+                            modifier = Modifier
+                                .height(60.dp)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "🚫 Horario Bloqueado",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFFFA500)
+                            )
+                        }
+                    } else {
+                        // Hora libre/disponible: mostrar espacio en blanco
+                        Box(
+                            modifier = Modifier
+                                .height(60.dp)
+                                .fillMaxWidth()
+                        )
                     }
                 }
             }
