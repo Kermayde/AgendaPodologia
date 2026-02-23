@@ -19,9 +19,7 @@ fun ExpandableCalendarContainer(
     onDateSelected: (Long) -> Unit,
     onMonthChanged: (year: Int, month: Int) -> Unit,
     onWeekMonthChanged: (year: Int, month: Int) -> Unit,
-    onGoToToday: () -> Unit,
-    onOpenDirectory: () -> Unit,
-    onOpenSettings: () -> Unit
+    onGoToToday: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -32,9 +30,7 @@ fun ExpandableCalendarContainer(
             selectedDate = selectedDate,
             isExpanded = isExpanded,
             onToggleExpanded = onToggleExpanded,
-            onGoToToday = onGoToToday,
-            onOpenDirectory = onOpenDirectory,
-            onOpenSettings = onOpenSettings
+            onGoToToday = onGoToToday
         )
         // 2. Grid mensual + Carrusel (solo cuando expandido)
         AnimatedVisibility(

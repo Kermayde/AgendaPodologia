@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -27,9 +25,7 @@ fun ExpandableCalendarHeader(
     selectedDate: Long,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
-    onGoToToday: () -> Unit,
-    onOpenDirectory: () -> Unit,
-    onOpenSettings: () -> Unit
+    onGoToToday: () -> Unit
 ) {
     // Formateador dinámico: si es año actual, solo mes; si no, mes abreviado + año
     val monthYearFormat = run {
@@ -90,25 +86,8 @@ fun ExpandableCalendarHeader(
                 Icon(
                     Icons.Default.Today,
                     "Ir a Hoy",
-
-                )
-            }
-            IconButton(onClick = onOpenDirectory) {
-                Icon(
-                    Icons.Default.Person,
-                    "Directorio",
-
-                )
-            }
-            IconButton(onClick = onOpenSettings) {
-                Icon(
-                    Icons.Default.Settings,
-                    "Configuración",
-
                 )
             }
         }
     )
 }
-
-
