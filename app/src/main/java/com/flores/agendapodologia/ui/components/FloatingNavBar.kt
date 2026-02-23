@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -38,10 +39,14 @@ fun FloatingNavBar(
 ) {
     val isOnHome = currentRoute == "home"
 
+    val navigationBarInsets = WindowInsets.navigationBars
+    val density = LocalDensity.current
+    val navBarBottomPadding = with(density) { navigationBarInsets.getBottom(this).toDp() }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 48.dp, end = 48.dp, bottom = 24.dp),
+            .padding(start = 48.dp, end = 48.dp, bottom = navBarBottomPadding + 16.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         Surface(
