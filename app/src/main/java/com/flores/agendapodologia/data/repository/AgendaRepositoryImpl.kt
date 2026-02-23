@@ -482,6 +482,53 @@ class AgendaRepositoryImpl(
         }
     }
 
+    override fun getAppointmentsForTomorrow(): Flow<List<Appointment>> = callbackFlow {
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.DAY_OF_YEAR, 1)
+
+        // Inicio de mañana (00:00:00.000)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val startOfTomorrow = calendar.time
+
+        // Fin de mañana (23:59:59.999)
+        calendar.set(Calendar.HOUR_OF_DAY, 23)
+        calendar.set(Calendar.MINUTE, 59)
+        calendar.set(Calendar.SECOND, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
+        val endOfTomorrow = calendar.time
+
+        val subscription = db.collection("appointments")
+            .whereGreaterThanOrEqualTo("date", startOfTomorrow)
+            .whereLessThanOrEqualTo("date", endOfTomorrow)
+            .orderBy("date", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val appointments = snapshot.toObjects(Appointment::class.java)
+                    trySend(appointments)
+                }
+            }
+
+        awaitClose { subscription.remove() }
+    }
+
+    override suspend fun markReminderSent(appointmentId: String): Result<Boolean> {
+        return try {
+            db.collection("appointments").document(appointmentId)
+                .update("isReminderSent", true)
+                .await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     // Mappers personalizados para ClinicSettings
     private fun mapClinicSettingsToDocument(settings: ClinicSettings): Map<String, Any> {
         return mapOf(

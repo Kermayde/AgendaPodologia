@@ -12,15 +12,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.Patient
+import com.flores.agendapodologia.model.ReminderPreference
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 
 @Composable
 fun AddPatientDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (String, String, ReminderPreference) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
+    var reminderPreference by remember { mutableStateOf(ReminderPreference.WHATSAPP) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -41,13 +43,18 @@ fun AddPatientDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     singleLine = true
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                ReminderPreferenceSelector(
+                    selected = reminderPreference,
+                    onSelected = { reminderPreference = it }
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (name.isNotEmpty()) {
-                        onConfirm(name, phone)
+                        onConfirm(name, phone, reminderPreference)
                         onDismiss()
                     }
                 }

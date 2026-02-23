@@ -2,7 +2,6 @@ package com.flores.agendapodologia
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -10,11 +9,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,9 +24,11 @@ import com.flores.agendapodologia.ui.components.FloatingNavBar
 import com.flores.agendapodologia.ui.navigation.AppScreens
 import com.flores.agendapodologia.ui.screens.AddAppointmentScreen
 import com.flores.agendapodologia.ui.screens.AppointmentDetailScreen
+import com.flores.agendapodologia.ui.screens.CashRegisterScreen
 import com.flores.agendapodologia.ui.screens.HomeScreen
 import com.flores.agendapodologia.ui.screens.PatientDetailScreen
 import com.flores.agendapodologia.ui.screens.PatientDirectoryScreen
+import com.flores.agendapodologia.ui.screens.RemindersScreen
 import com.flores.agendapodologia.ui.screens.SettingsScreen
 import com.flores.agendapodologia.ui.theme.AgendaPodologiaTheme
 import com.flores.agendapodologia.viewmodel.HomeViewModel
@@ -40,18 +40,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            ),
-            navigationBarStyle = SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
-        )
+        enableEdgeToEdge()
 
         // Inyección de dependencias simple
         val db = Firebase.firestore
@@ -67,8 +56,12 @@ class MainActivity : ComponentActivity() {
             val showNavBar = currentRoute in listOf(
                 AppScreens.Home.route,
                 AppScreens.PatientDirectory.route,
-                AppScreens.Settings.route
+                AppScreens.Settings.route,
+                AppScreens.Reminders.route,
+                AppScreens.CashRegister.route
             )
+
+            val pendingRemindersCount by viewModel.pendingRemindersCount.collectAsState()
 
             AgendaPodologiaTheme {
                 Surface(
@@ -141,6 +134,21 @@ class MainActivity : ComponentActivity() {
                                     onBack = { navController.popBackStack() }
                                 )
                             }
+
+                            // 7. RECORDATORIOS
+                            composable(AppScreens.Reminders.route) {
+                                RemindersScreen(
+                                    viewModel = viewModel,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            // 8. CORTE DE CAJA
+                            composable(AppScreens.CashRegister.route) {
+                                CashRegisterScreen(
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
                         }
 
                         // Barra de navegación flotante
@@ -168,6 +176,19 @@ class MainActivity : ComponentActivity() {
                                 onAddAppointment = {
                                     navController.navigate(AppScreens.AddAppointment.route)
                                 },
+                                onNavigateToReminders = {
+                                    navController.navigate(AppScreens.Reminders.route) {
+                                        popUpTo(AppScreens.Home.route)
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onNavigateToCashRegister = {
+                                    navController.navigate(AppScreens.CashRegister.route) {
+                                        popUpTo(AppScreens.Home.route)
+                                        launchSingleTop = true
+                                    }
+                                },
+                                pendingRemindersCount = pendingRemindersCount,
                                 modifier = Modifier.align(Alignment.BottomCenter)
                             )
                         }

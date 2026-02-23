@@ -49,6 +49,9 @@ fun SettingsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Configuración de Horarios") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")

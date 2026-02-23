@@ -16,4 +16,6 @@ sealed class AppScreens(val route: String) {
     }
 
     object Settings : AppScreens("settings")
+    object Reminders : AppScreens("reminders")
+    object CashRegister : AppScreens("cash_register")
 }

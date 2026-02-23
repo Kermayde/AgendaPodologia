@@ -10,6 +10,7 @@ import com.flores.agendapodologia.model.ClinicSettings
 import com.flores.agendapodologia.model.Patient
 import com.flores.agendapodologia.model.PatientStatus
 import com.flores.agendapodologia.model.PaymentMethod
+import com.flores.agendapodologia.model.ReminderPreference
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,7 @@ class HomeViewModel(
     init {
         // Al iniciar, empezamos a escuchar cambios en tiempo real
         subscribeToPatients()
+        subscribeToTomorrowAppointments()
     }
 
     private fun subscribeToPatients() {
@@ -45,9 +47,61 @@ class HomeViewModel(
         }
     }
 
-    fun saveNewPatient(name: String, phone: String) {
+    // --- RECORDATORIOS ---
+    private val _tomorrowAppointments = MutableStateFlow<List<Appointment>>(emptyList())
+
+    private fun subscribeToTomorrowAppointments() {
         viewModelScope.launch {
-            val newPatient = Patient(name = name, phone = phone)
+            repository.getAppointmentsForTomorrow().collect { list ->
+                _tomorrowAppointments.value = list
+            }
+        }
+    }
+
+    // Combina citas de mañana con pacientes para calcular recordatorios pendientes
+    val pendingReminders: StateFlow<List<PendingReminder>> =
+        _tomorrowAppointments.combine(_patients) { appointments, patients ->
+            val patientMap = patients.associateBy { it.id }
+            val now = System.currentTimeMillis()
+
+            appointments.filter { appt ->
+                // No es bloqueo
+                !appt.isBlockout &&
+                // Aún no se envió el recordatorio
+                !appt.isReminderSent &&
+                // La cita se creó hace 4 o más días
+                (appt.date.time - appt.createdAt) >= TimeUnit.DAYS.toMillis(4) &&
+                // El paciente no tiene preferencia "Ninguno"
+                (patientMap[appt.patientId]?.reminderPreference ?: ReminderPreference.WHATSAPP) != ReminderPreference.NINGUNO
+            }.map { appt ->
+                val patient = patientMap[appt.patientId]
+                PendingReminder(
+                    appointment = appt,
+                    patientName = appt.patientName,
+                    patientPhone = appt.patientPhone,
+                    reminderPreference = patient?.reminderPreference ?: ReminderPreference.WHATSAPP
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val pendingRemindersCount: StateFlow<Int> = pendingReminders.map { it.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    fun markReminderSent(appointmentId: String) {
+        viewModelScope.launch {
+            repository.markReminderSent(appointmentId)
+                .onSuccess {
+                    // Actualizamos localmente para respuesta inmediata
+                    _tomorrowAppointments.value = _tomorrowAppointments.value.map {
+                        if (it.id == appointmentId) it.copy(isReminderSent = true) else it
+                    }
+                }
+        }
+    }
+
+    fun saveNewPatient(name: String, phone: String, reminderPreference: ReminderPreference = ReminderPreference.WHATSAPP) {
+        viewModelScope.launch {
+            val newPatient = Patient(name = name, phone = phone, reminderPreference = reminderPreference)
             repository.addPatient(newPatient)
                 .onSuccess {
                     // Podrías mostrar un Toast aquí o limpiar el formulario
@@ -231,6 +285,7 @@ class HomeViewModel(
         date: Long, // Recibimos Long del DatePicker
         service: String,
         podiatrist: String,
+        reminderPreference: ReminderPreference = ReminderPreference.WHATSAPP,
         onSuccess: () -> Unit // Callback para avisar a la UI que terminó
     ) {
         viewModelScope.launch {
@@ -246,17 +301,19 @@ class HomeViewModel(
                 patientToSave = Patient(
                     id = "",
                     name = finalName,
-                    phone = finalPhone
+                    phone = finalPhone,
+                    reminderPreference = reminderPreference
                 )
             } else {
                 // CASO 2: PACIENTE EXISTENTE
                 // Verificamos si cambió algún dato
-                if (selectedPatient.name != finalName || selectedPatient.phone != finalPhone) {
+                if (selectedPatient.name != finalName || selectedPatient.phone != finalPhone || selectedPatient.reminderPreference != reminderPreference) {
 
                     // Preparamos el objeto actualizado
                     val updatedPatient = selectedPatient.copy(
                         name = finalName,
-                        phone = finalPhone
+                        phone = finalPhone,
+                        reminderPreference = reminderPreference
                     )
 
                     // ¡AQUÍ ESTÁ EL AJUSTE!
@@ -561,3 +618,11 @@ data class DailySummary(
     val cashFormatted: String get() = NumberFormat.getCurrencyInstance().format(cash)
     val bankFormatted: String get() = NumberFormat.getCurrencyInstance().format(cardAndTransfer)
 }
+
+data class PendingReminder(
+    val appointment: Appointment,
+    val patientName: String,
+    val patientPhone: String,
+    val reminderPreference: ReminderPreference
+)
+

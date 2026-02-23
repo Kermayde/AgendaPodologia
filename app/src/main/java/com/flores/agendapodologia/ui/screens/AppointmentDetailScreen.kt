@@ -88,6 +88,9 @@ fun AppointmentDetailScreen(
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "Editando Cita" else "Detalle de Cita") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
                 navigationIcon = {
                     IconButton(onClick = {
                         if (isEditing) isEditing = false else onBack()

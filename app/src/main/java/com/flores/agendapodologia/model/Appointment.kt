@@ -16,6 +16,7 @@ data class Appointment(
     // FECHAS
     val date: Date = Date(), // Fecha programada
     val completedAt: Date? = null, // Fecha real cuando se terminó la cita
+    val createdAt: Long = System.currentTimeMillis(), // Fecha de creación para lógica de recordatorios
 
     // ESTADO Y PAGO
     val status: AppointmentStatus = AppointmentStatus.PENDIENTE,
@@ -34,7 +35,10 @@ data class Appointment(
     var isBlockout: Boolean = false,
 
     // NUEVO: Indica si en esta cita se usó la garantía (ej: correcciones gratis)
-    val usedWarranty: Boolean = false
+    val usedWarranty: Boolean = false,
+
+    // RECORDATORIOS
+    val isReminderSent: Boolean = false
 )
 
 // Enums para evitar errores de dedo ("Efectivo" vs "efectivo")

@@ -37,13 +37,8 @@ fun PatientDirectoryScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Directorio de Pacientes") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
             )
         }

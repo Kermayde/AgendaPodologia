@@ -30,6 +30,6 @@ interface AgendaRepository {
     suspend fun addAppointmentOnly(appointment: Appointment): Result<Boolean>
     fun getClinicSettings(): Flow<ClinicSettings>
     suspend fun saveClinicSettings(settings: ClinicSettings): Result<Boolean>
-
-
+    fun getAppointmentsForTomorrow(): Flow<List<Appointment>>
+    suspend fun markReminderSent(appointmentId: String): Result<Boolean>
 }

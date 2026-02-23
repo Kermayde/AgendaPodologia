@@ -20,8 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.Patient
+import com.flores.agendapodologia.model.ReminderPreference
 import com.flores.agendapodologia.ui.components.DatePickerModal
 import com.flores.agendapodologia.ui.components.PatientAutocomplete
+import com.flores.agendapodologia.ui.components.ReminderPreferenceSelector
 import com.flores.agendapodologia.ui.components.ServiceSelector
 import com.flores.agendapodologia.ui.components.TimePickerModal
 import com.flores.agendapodologia.viewmodel.HomeViewModel
@@ -42,6 +44,7 @@ fun AddAppointmentScreen(
     var patientNameQuery by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var isEditingExisting by remember { mutableStateOf(false) }
+    var reminderPreference by remember { mutableStateOf(ReminderPreference.WHATSAPP) }
 
     // Datos del Servicio (Movido arriba para usarlo en la lógica visual)
     var serviceType by remember { mutableStateOf("Quiropodia") }
@@ -71,6 +74,9 @@ fun AddAppointmentScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Nueva Cita") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
@@ -110,6 +116,7 @@ fun AddAppointmentScreen(
                             selectedPatient = patient
                             patientNameQuery = patient.name
                             phone = patient.phone
+                            reminderPreference = patient.reminderPreference
                             isEditingExisting = false
                             viewModel.searchPatient("")
                         },
@@ -149,6 +156,12 @@ fun AddAppointmentScreen(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                            ReminderPreferenceSelector(
+                                selected = reminderPreference,
+                                onSelected = { reminderPreference = it }
                             )
                         }
                     }
@@ -221,6 +234,12 @@ fun AddAppointmentScreen(
                                     disabledTextColor = MaterialTheme.colorScheme.onSurface,
                                     disabledBorderColor = Color.Transparent
                                 )
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                            ReminderPreferenceSelector(
+                                selected = reminderPreference,
+                                onSelected = { reminderPreference = it }
                             )
                         }
                     }
@@ -337,6 +356,7 @@ fun AddAppointmentScreen(
                             date = calendar.timeInMillis,
                             service = serviceType,
                             podiatrist = podiatrist,
+                            reminderPreference = reminderPreference,
                             onSuccess = { onBack() }
                         )
                     }

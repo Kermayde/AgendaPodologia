@@ -13,7 +13,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -27,6 +29,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun FloatingNavBar(
@@ -35,6 +38,9 @@ fun FloatingNavBar(
     onNavigateToPatients: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onAddAppointment: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToCashRegister: () -> Unit,
+    pendingRemindersCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
     val isOnHome = currentRoute == "home"
@@ -46,7 +52,7 @@ fun FloatingNavBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 48.dp, end = 48.dp, bottom = navBarBottomPadding + 16.dp),
+            .padding(start = 24.dp, end = 24.dp, bottom = navBarBottomPadding + 16.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         Surface(
@@ -75,18 +81,35 @@ fun FloatingNavBar(
                     onClick = onNavigateToPatients
                 )
 
-                Spacer(modifier = Modifier.width(4.dp))
+                // 2. Recordatorios (con badge)
+                NavBarItemWithBadge(
+                    icon = Icons.Filled.Notifications,
+                    contentDescription = "Recordatorios",
+                    isSelected = currentRoute == "reminders",
+                    badgeCount = pendingRemindersCount,
+                    onClick = onNavigateToReminders
+                )
 
-                // 2. Centro: Home / Agregar Cita
+                Spacer(modifier = Modifier.width(2.dp))
+
+                // 3. Centro: Home / Agregar Cita
                 CenterNavButton(
                     isOnHome = isOnHome,
                     onHomeClick = onNavigateToHome,
                     onAddClick = onAddAppointment
                 )
 
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(2.dp))
 
-                // 3. Settings
+                // 4. Corte de Caja
+                NavBarItem(
+                    icon = Icons.Filled.AttachMoney,
+                    contentDescription = "Corte de Caja",
+                    isSelected = currentRoute == "cash_register",
+                    onClick = onNavigateToCashRegister
+                )
+
+                // 5. Settings
                 NavBarItem(
                     icon = Icons.Filled.Settings,
                     contentDescription = "Configuración",
@@ -146,6 +169,74 @@ private fun NavBarItem(
             tint = iconColor,
             modifier = Modifier.size(24.dp)
         )
+    }
+}
+
+@Composable
+private fun NavBarItemWithBadge(
+    icon: ImageVector,
+    contentDescription: String,
+    isSelected: Boolean,
+    badgeCount: Int,
+    onClick: () -> Unit
+) {
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isSelected) 1.1f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "scale"
+    )
+
+    val containerColor by animateColorAsState(
+        targetValue = if (isSelected)
+            MaterialTheme.colorScheme.secondaryContainer
+        else
+            MaterialTheme.colorScheme.surfaceContainerHigh,
+        label = "containerColor"
+    )
+
+    val iconColor by animateColorAsState(
+        targetValue = if (isSelected)
+            MaterialTheme.colorScheme.onSecondaryContainer
+        else
+            MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "iconColor"
+    )
+
+    Box(
+        modifier = Modifier
+            .scale(animatedScale)
+            .size(45.dp)
+            .clip(CircleShape)
+            .background(containerColor)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = true, radius = 24.dp),
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        BadgedBox(
+            badge = {
+                if (badgeCount > 0) {
+                    Badge(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    ) {
+                        Text(
+                            text = if (badgeCount > 9) "9+" else badgeCount.toString(),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+            }
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = iconColor,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
 

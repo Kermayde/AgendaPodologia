@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.PatientStatus
+import com.flores.agendapodologia.model.ReminderPreference
+import com.flores.agendapodologia.ui.components.ReminderPreferenceSelector
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.net.URLEncoder
 
@@ -48,12 +50,14 @@ fun PatientDetailScreen(
     // Estados temporales para los campos de texto (buffer de edición)
     var editName by remember { mutableStateOf("") }
     var editPhone by remember { mutableStateOf("") }
+    var editReminderPreference by remember { mutableStateOf(ReminderPreference.WHATSAPP) }
 
     // Sincronizar buffer cuando entramos al modo edición
     LaunchedEffect(isEditing) {
         if (isEditing && patient != null) {
             editName = patient!!.name
             editPhone = patient!!.phone
+            editReminderPreference = patient!!.reminderPreference
         }
     }
 
@@ -62,6 +66,9 @@ fun PatientDetailScreen(
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "Editando Paciente" else "Detalle del Paciente") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
                 navigationIcon = {
                     // Si estamos editando, el botón atrás funciona como "Cancelar"
                     IconButton(onClick = {
@@ -88,7 +95,8 @@ fun PatientDetailScreen(
                             if (patient != null) {
                                 val updatedPatient = patient!!.copy(
                                     name = editName.trim(),
-                                    phone = editPhone.trim()
+                                    phone = editPhone.trim(),
+                                    reminderPreference = editReminderPreference
                                 )
                                 viewModel.updatePatient(updatedPatient) {
                                     isEditing = false // Salir del modo edición al terminar
@@ -144,6 +152,11 @@ fun PatientDetailScreen(
                                     focusedContainerColor = MaterialTheme.colorScheme.surface
                                 )
                             )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            ReminderPreferenceSelector(
+                                selected = editReminderPreference,
+                                onSelected = { editReminderPreference = it }
+                            )
                         } else {
                             // --- VISTA SOLO LECTURA (Lo que ya tenías) ---
                             Text(
@@ -155,6 +168,16 @@ fun PatientDetailScreen(
                             Text(
                                 text = patient!!.phone,
                                 style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Aviso: ${when (patient!!.reminderPreference) {
+                                    ReminderPreference.WHATSAPP -> "WhatsApp"
+                                    ReminderPreference.LLAMADA -> "Llamada"
+                                    ReminderPreference.NINGUNO -> "Ninguno"
+                                }}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
