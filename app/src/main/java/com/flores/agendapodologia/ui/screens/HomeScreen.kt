@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.ui.components.ExpandableCalendarContainer
-import com.flores.agendapodologia.ui.components.DailySummaryCard
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -24,7 +23,6 @@ fun HomeScreen(
     // Observamos los estados del ViewModel
     val appointments by viewModel.appointments.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
-    val dailySummary by viewModel.dailySummary.collectAsState()
     val clinicSettings by viewModel.clinicSettings.collectAsState()
     val displayedMonth by viewModel.displayedMonth.collectAsState()
     val isCalendarExpanded by viewModel.isCalendarExpanded.collectAsState()
@@ -62,13 +60,7 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
-            // 1. MOSTRAR EL DASHBOARD FINANCIERO
-            // Solo lo mostramos si ya hay dinero cobrado, para no estorbar cuando está en ceros
-            if (dailySummary.total > 0) {
-                DailySummaryCard(summary = dailySummary)
-            }
-
-            // 2. MOSTRAR LA LÍNEA DE TIEMPO
+            // MOSTRAR LA LÍNEA DE TIEMPO
             Box(modifier = Modifier.weight(1f)) {
                 TimelineScreen(
                     selectedDate = selectedDate,

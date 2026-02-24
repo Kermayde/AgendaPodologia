@@ -582,8 +582,11 @@ class HomeViewModel(
         var cash = 0.0
         var bank = 0.0
 
+        // Excluir blockouts del conteo
+        val realAppointments = appts.filter { !it.isBlockout }
+
         // Filtramos SOLO las citas terminadas y pagadas
-        val paidAppointments = appts.filter {
+        val paidAppointments = realAppointments.filter {
             it.status == AppointmentStatus.FINALIZADA && it.isPaid
         }
 
@@ -596,7 +599,18 @@ class HomeViewModel(
             }
         }
 
-        DailySummary(total, cash, bank)
+        DailySummary(
+            total = total,
+            cash = cash,
+            cardAndTransfer = bank,
+            totalAppointments = realAppointments.size,
+            finishedAppointments = realAppointments.count { it.status == AppointmentStatus.FINALIZADA },
+            paidAppointments = paidAppointments.size,
+            warrantyAppointments = realAppointments.count { it.status == AppointmentStatus.FINALIZADA && it.usedWarranty },
+            cancelledAppointments = realAppointments.count { it.status == AppointmentStatus.CANCELADA },
+            noShowAppointments = realAppointments.count { it.status == AppointmentStatus.NO_ASISTIO },
+            pendingAppointments = realAppointments.count { it.status == AppointmentStatus.PENDIENTE }
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DailySummary())
 }
 
@@ -611,7 +625,14 @@ data class WarrantyState(
 data class DailySummary(
     val total: Double = 0.0,
     val cash: Double = 0.0,
-    val cardAndTransfer: Double = 0.0 // Agrupamos tarjeta y transferencia para simplificar
+    val cardAndTransfer: Double = 0.0, // Agrupamos tarjeta y transferencia para simplificar
+    val totalAppointments: Int = 0,      // Total de citas del día (sin blockouts)
+    val finishedAppointments: Int = 0,   // Citas finalizadas
+    val paidAppointments: Int = 0,       // Citas cobradas
+    val warrantyAppointments: Int = 0,   // Citas por garantía (gratis)
+    val cancelledAppointments: Int = 0,  // Citas canceladas
+    val noShowAppointments: Int = 0,     // No asistió
+    val pendingAppointments: Int = 0     // Citas pendientes
 ) {
     // Helpers para formatear a moneda ($1,500.00)
     val totalFormatted: String get() = NumberFormat.getCurrencyInstance().format(total)

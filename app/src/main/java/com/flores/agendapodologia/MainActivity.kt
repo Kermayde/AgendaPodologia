@@ -146,6 +146,7 @@ class MainActivity : ComponentActivity() {
                             // 8. CORTE DE CAJA
                             composable(AppScreens.CashRegister.route) {
                                 CashRegisterScreen(
+                                    viewModel = viewModel,
                                     onBack = { navController.popBackStack() }
                                 )
                             }
