@@ -136,7 +136,7 @@ fun DayScheduleEditor(
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (schedule.isOpen) MaterialTheme.colorScheme.surfaceVariant else Color(0xFFEEEEEE)
+            containerColor = if (schedule.isOpen) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

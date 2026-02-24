@@ -50,25 +50,31 @@ class HomeViewModel(
     // --- RECORDATORIOS ---
     private val _tomorrowAppointments = MutableStateFlow<List<Appointment>>(emptyList())
 
+    // Set local para rastrear IDs marcados como "avisado" y evitar que el listener
+    // de Firestore los vuelva a mostrar antes de que el servidor confirme el cambio
+    private val _markedReminderIds = MutableStateFlow<Set<String>>(emptySet())
+
     private fun subscribeToTomorrowAppointments() {
         viewModelScope.launch {
             repository.getAppointmentsForTomorrow().collect { list ->
                 _tomorrowAppointments.value = list
+                // Limpiamos del set local los IDs que Firestore ya confirmó como isReminderSent = true
+                val confirmedIds = list.filter { it.isReminderSent }.map { it.id }.toSet()
+                _markedReminderIds.value = _markedReminderIds.value - confirmedIds
             }
         }
     }
 
-    // Combina citas de mañana con pacientes para calcular recordatorios pendientes
+    // Combina citas de mañana con pacientes y los IDs marcados localmente
     val pendingReminders: StateFlow<List<PendingReminder>> =
-        _tomorrowAppointments.combine(_patients) { appointments, patients ->
+        combine(_tomorrowAppointments, _patients, _markedReminderIds) { appointments, patients, markedIds ->
             val patientMap = patients.associateBy { it.id }
-            val now = System.currentTimeMillis()
 
             appointments.filter { appt ->
                 // No es bloqueo
                 !appt.isBlockout &&
-                // Aún no se envió el recordatorio
-                !appt.isReminderSent &&
+                // Aún no se envió el recordatorio (ni en Firestore ni localmente)
+                !appt.isReminderSent && appt.id !in markedIds &&
                 // La cita se creó hace 4 o más días
                 (appt.date.time - appt.createdAt) >= TimeUnit.DAYS.toMillis(4) &&
                 // El paciente no tiene preferencia "Ninguno"
@@ -88,13 +94,13 @@ class HomeViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     fun markReminderSent(appointmentId: String) {
+        // Marcamos inmediatamente en el set local para que desaparezca de la UI al instante
+        _markedReminderIds.value = _markedReminderIds.value + appointmentId
         viewModelScope.launch {
             repository.markReminderSent(appointmentId)
-                .onSuccess {
-                    // Actualizamos localmente para respuesta inmediata
-                    _tomorrowAppointments.value = _tomorrowAppointments.value.map {
-                        if (it.id == appointmentId) it.copy(isReminderSent = true) else it
-                    }
+                .onFailure {
+                    // Si falla la escritura en Firebase, revertimos el cambio local
+                    _markedReminderIds.value = _markedReminderIds.value - appointmentId
                 }
         }
     }

@@ -38,7 +38,8 @@ data class Appointment(
     val usedWarranty: Boolean = false,
 
     // RECORDATORIOS
-    val isReminderSent: Boolean = false
+    @get:PropertyName("isReminderSent") @set:PropertyName("isReminderSent")
+    var isReminderSent: Boolean = false
 )
 
 // Enums para evitar errores de dedo ("Efectivo" vs "efectivo")
