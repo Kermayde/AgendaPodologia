@@ -49,12 +49,22 @@ fun MonthGridCalendar(
 
     val coroutineScope = rememberCoroutineScope()
 
+    // Flag para suprimir onMonthChangedByPager durante scrolls programáticos
+    // (ej: cuando el carrusel cambió displayedMonth y eso movió el pager)
+    var isProgrammaticScroll by remember { mutableStateOf(false) }
+
     // Observar cambios en el pagerState para actualizar el mes mostrado (solo actualizar displayedMonth, no selectedDate)
-    LaunchedEffect(pagerState.currentPage) {
-        val monthOffset = pagerState.currentPage - middleIndex
-        val newYear = baseYear + (monthOffset / 12)
-        val newMonth = ((monthOffset % 12) + 12) % 12
-        onMonthChangedByPager(newYear, newMonth)
+    // Usamos settledPage para evitar que páginas intermedias durante una animación disparen actualizaciones falsas
+    // Solo reportamos cuando el usuario desliza manualmente el grid
+    LaunchedEffect(pagerState.settledPage) {
+        if (isProgrammaticScroll) {
+            isProgrammaticScroll = false
+        } else {
+            val monthOffset = pagerState.settledPage - middleIndex
+            val newYear = baseYear + (monthOffset / 12)
+            val newMonth = ((monthOffset % 12) + 12) % 12
+            onMonthChangedByPager(newYear, newMonth)
+        }
     }
 
     // Sincronizar el pager cuando cambia displayedMonth desde el carrusel
@@ -62,6 +72,7 @@ fun MonthGridCalendar(
         val targetIndex = (displayedYear - baseYear) * 12 + (displayedMonth - baseMonth) + middleIndex
         // Solo animar si es diferente al actual
         if (pagerState.currentPage != targetIndex) {
+            isProgrammaticScroll = true
             coroutineScope.launch {
                 pagerState.animateScrollToPage(targetIndex)
             }

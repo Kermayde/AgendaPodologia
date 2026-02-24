@@ -77,11 +77,26 @@ fun WeekCalendar(
 
     val coroutineScope = rememberCoroutineScope()
 
+    // Flag para suprimir onWeekChanged durante scrolls programáticos
+    // (ej: cuando el carrusel de meses cambió selectedDate y eso movió la tira semanal)
+    var isProgrammaticScroll by remember { mutableStateOf(false) }
+
     // Observar cambios en el pager para detectar si cambia el mes
-    LaunchedEffect(pagerState.currentPage) {
-        val currentWeekDate = weeks[pagerState.currentPage]
-        val calendar = Calendar.getInstance().apply { timeInMillis = currentWeekDate }
-        onWeekChanged(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH))
+    // Solo reportamos cuando el usuario desliza manualmente la tira semanal
+    LaunchedEffect(pagerState.settledPage) {
+        if (isProgrammaticScroll) {
+            // El scroll fue programático (vino del carrusel/grid), no sobrescribimos el mes
+            isProgrammaticScroll = false
+        } else {
+            // El usuario deslizó manualmente — reportamos el mes del jueves de la semana
+            // (jueves es más representativo: ISO 8601 usa jueves para determinar la semana del mes)
+            val currentWeekDate = weeks[pagerState.settledPage]
+            val calendar = Calendar.getInstance().apply {
+                timeInMillis = currentWeekDate
+                add(Calendar.DAY_OF_YEAR, 3) // Lunes + 3 = Jueves
+            }
+            onWeekChanged(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH))
+        }
     }
 
     // Sincronizar el pager cuando cambia selectedDate (solo si la semana es diferente)
@@ -93,6 +108,7 @@ fun WeekCalendar(
         }
 
         if (pagerState.currentPage != targetIndex && targetIndex >= 0) {
+            isProgrammaticScroll = true
             coroutineScope.launch {
                 pagerState.animateScrollToPage(targetIndex)
             }
