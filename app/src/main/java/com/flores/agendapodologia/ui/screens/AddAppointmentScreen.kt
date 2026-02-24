@@ -333,10 +333,20 @@ fun AddAppointmentScreen(
 
             Button(
                 onClick = {
-                    val calendar = Calendar.getInstance().apply {
+                    // El DatePicker de Material 3 devuelve milisegundos en UTC (medianoche UTC).
+                    // Debemos extraer año/mes/día en UTC y luego armar la fecha en zona local
+                    // para evitar que se reste un día por diferencia de zona horaria.
+                    val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
                         timeInMillis = selectedDateMillis
+                    }
+                    val calendar = Calendar.getInstance().apply {
+                        set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
+                        set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
+                        set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
                         set(Calendar.HOUR_OF_DAY, selectedHour)
                         set(Calendar.MINUTE, selectedMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
                     }
 
                     if (isBlockOut) {
