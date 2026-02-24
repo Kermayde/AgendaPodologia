@@ -67,7 +67,12 @@ fun AppointmentDetailScreen(
     var showTimePicker by remember { mutableStateOf(false) }
 
     // Estado local para las notas que estás escribiendo
-    var currentNotes by remember { mutableStateOf(appointment?.notes ?: "") }
+    var currentNotes by remember { mutableStateOf("") }
+
+    // Sincronizar notas cuando la cita se carga/cambia (la carga es asíncrona)
+    LaunchedEffect(appointment?.id) {
+        currentNotes = appointment?.notes ?: ""
+    }
 
     // Sincronizar datos al entrar en modo edición
     LaunchedEffect(isEditing) {

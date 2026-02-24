@@ -249,7 +249,9 @@ class HomeViewModel(
     // ...
     fun loadAppointmentDetails(appointmentId: String) {
         viewModelScope.launch {
-            //_isLoading.value = true // Opcional, si tienes estado de carga
+            // Limpiamos datos anteriores para evitar mostrar datos obsoletos de otra cita
+            _currentDetailAppointment.value = null
+            _lastAppointments.value = emptyList()
 
             // 1. Buscamos la cita fresca por ID
             val appointment = repository.getAppointmentById(appointmentId)
