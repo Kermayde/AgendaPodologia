@@ -3,6 +3,7 @@ package com.flores.agendapodologia.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -10,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,7 +81,6 @@ fun TimeSlot(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .background(backgroundColor)
                 .clickable(enabled = isClickable) { if (isClickable) onSlotClick(hour) }
         ) {
             Column {
@@ -87,7 +88,7 @@ fun TimeSlot(
                 if (isCurrentHour) {
                     LinearWavyProgressIndicator(
                         progress = { 0.949f },
-                        amplitude = { 0.3f }, // Intensidad del ondulado
+                        amplitude = { 0.3f },
                         wavelength = 15.dp,
                         waveSpeed = 15.dp,
                         stopSize = 0.dp,
@@ -104,20 +105,53 @@ fun TimeSlot(
 
                 // SIEMPRE mostrar citas si existen
                 if (appointments.isNotEmpty()) {
-                    // Si hay citas, las mostramos apiladas
-                    appointments.forEach { appt ->
+                    val count = appointments.size
+                    val outerRadius = 16.dp  // Bordes exteriores más redondeados
+                    val innerRadius = 4.dp   // Bordes interiores entre citas menos redondeados
+
+                    // Si hay citas, las mostramos apiladas con formas agrupadas
+                    appointments.forEachIndexed { index, appt ->
+                        val shape = when {
+                            // Una sola cita: todos los bordes redondeados
+                            count == 1 -> RoundedCornerShape(outerRadius)
+                            // Primera cita del grupo: bordes superiores redondeados, inferiores suaves
+                            index == 0 -> RoundedCornerShape(
+                                topStart = outerRadius, topEnd = outerRadius,
+                                bottomStart = innerRadius, bottomEnd = innerRadius
+                            )
+                            // Última cita del grupo: bordes inferiores redondeados, superiores suaves
+                            index == count - 1 -> RoundedCornerShape(
+                                topStart = innerRadius, topEnd = innerRadius,
+                                bottomStart = outerRadius, bottomEnd = outerRadius
+                            )
+                            // Citas intermedias: todos los bordes suaves
+                            else -> RoundedCornerShape(innerRadius)
+                        }
+
                         AppointmentCard(
                             appointment = appt,
-                            onClick = { onAppointmentClick(appt) }
+                            onClick = { onAppointmentClick(appt) },
+                            shape = shape,
+                            isOutsideWorkingHours = !isWorkingHour
                         )
+
+                        // Espaciado pequeño entre citas de la misma hora (2dp),
+                        // excepto después de la última
+                        if (index < count - 1) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                        }
                     }
+                    // Espaciado final después del grupo de citas
+                    //Spacer(modifier = Modifier.height(4.dp))
                 } else {
                     // Si NO hay citas, mostrar un espacio vacío con el mensaje correspondiente
                     if (!isWorkingHour) {
                         // Fuera de horario laboral: mostrar "No Disponible"
                         Box(
                             modifier = Modifier
-                                .height(60.dp)
+                                .clip(shape = MaterialTheme.shapes.medium )
+                                .height(45.dp)
+                                .background(backgroundColor)
                                 .fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
@@ -131,7 +165,9 @@ fun TimeSlot(
                         // Hora bloqueada: mostrar "Horario Bloqueado"
                         Box(
                             modifier = Modifier
+                                .clip(shape = MaterialTheme.shapes.medium )
                                 .height(60.dp)
+                                .background(backgroundColor)
                                 .fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
@@ -145,7 +181,9 @@ fun TimeSlot(
                         // Hora libre/disponible: mostrar espacio en blanco
                         Box(
                             modifier = Modifier
+                                .clip(shape = MaterialTheme.shapes.medium )
                                 .height(60.dp)
+                                .background(backgroundColor)
                                 .fillMaxWidth()
                         )
                     }

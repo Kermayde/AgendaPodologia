@@ -23,7 +23,9 @@ import java.util.*
 @Composable
 fun AppointmentCard(
     appointment: Appointment,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(12.dp),
+    isOutsideWorkingHours: Boolean = false
 ) {
     // Formateador de hora (ej: 10:30)
     val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -36,19 +38,28 @@ fun AppointmentCard(
     val textDecoration = if (isFinished) TextDecoration.LineThrough else null
 
     // Color distintivo según si es bloqueo o normal
-    val (containerColor, borderColor) = if (isBlockout) {
-        Pair(Color(0xFFFFB74D).copy(alpha = 0.2f), BorderStroke(2.dp, Color(0xFFFFA500)))  // Naranja para bloqueos
-    } else {
-        val bgColor = if (isFinished) Color.LightGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
-        Pair(bgColor, null)  // Color normal para citas
+    val (containerColor, borderColor) = when {
+        isBlockout -> {
+            Pair(Color(0xFFFFB74D).copy(alpha = 0.2f), BorderStroke(2.dp, Color(0xFFFFA500)))  // Naranja para bloqueos
+        }
+        isOutsideWorkingHours -> {
+            // Fuera de horario: fondo con tinte gris-azulado y borde punteado azul-gris
+            val bgColor = if (isFinished) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                          else Color(0xFFECEFF1) // Gris azulado claro
+            Pair(bgColor, BorderStroke(1.5.dp, Color(0xFF78909C)))  // Borde gris-azul
+        }
+        else -> {
+            val bgColor = if (isFinished) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            else MaterialTheme.colorScheme.surface
+            Pair(bgColor, null)  // Color normal para citas
+        }
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 16.dp)
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isFinished) 0.dp else 2.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = borderColor
     ) {
@@ -127,6 +138,23 @@ fun AppointmentCard(
                             Text(
                                 text = "POR GARANTÍA",
                                 color = Color(0xFF2E7D32),
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    // Indicador si la cita está fuera de horario laboral
+                    if (isOutsideWorkingHours) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Surface(
+                            color = Color(0xFFECEFF1),
+                            shape = RoundedCornerShape(8.dp),
+                            tonalElevation = 0.dp
+                        ) {
+                            Text(
+                                text = "⏰ FUERA DE HORARIO",
+                                color = Color(0xFF546E7A),
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
