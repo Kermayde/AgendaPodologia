@@ -1,3 +1,15 @@
+# ==================== Android Studio ====================
+.idea/
+.gradle/
+*.iml
+.DS_Store
+/out
+/local.properties
+/captures
+.externalNativeBuild
+.cxx
+
+# ==================== Build & Compiled Files ====================
 # Compiled class file
 *.class
 
@@ -22,3 +34,46 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# ==================== Gradle ====================
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradle
+local.properties
+
+# ==================== IDE ====================
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.classpath
+.project
+.settings/
+*.launch
+
+# ==================== JetBrains IDEs ====================
+*.iws
+*.iml
+out/
+
+# ==================== OS Specific ====================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# ==================== Kotlin ====================
+*.kotlin_module
+
+# ==================== Android specific ====================
+/gen
+/proguard_logs/
+
+# ==================== Misc ====================
+*.bak
+*.tmp
+*.temp
+*.orig
+
