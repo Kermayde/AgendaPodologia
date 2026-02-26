@@ -1,34 +1,51 @@
 package com.flores.agendapodologia.ui.components
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.AppointmentStatus
+import com.flores.agendapodologia.ui.theme.AppTheme
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppointmentCard(
     appointment: Appointment,
     onClick: () -> Unit,
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(12.dp),
+    shape: Shape = RoundedCornerShape(12.dp),
     isOutsideWorkingHours: Boolean = false
 ) {
     // Formateador de hora (ej: 10:30)
-    val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val configuration = LocalConfiguration.current
+    val timeFormatter = remember(configuration) {
+        SimpleDateFormat("HH:mm", configuration.locales[0])
+    }
     val timeString = timeFormatter.format(appointment.date)
 
     // Estilo condicional
@@ -49,7 +66,7 @@ fun AppointmentCard(
             Pair(bgColor, BorderStroke(1.5.dp, Color(0xFF78909C)))  // Borde gris-azul
         }
         else -> {
-            val bgColor = if (isFinished) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            val bgColor = if (isFinished) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                             else MaterialTheme.colorScheme.surface
             Pair(bgColor, null)  // Color normal para citas
         }
@@ -60,11 +77,13 @@ fun AppointmentCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        colors = CardDefaults.cardColors(containerColor),
         border = borderColor
     ) {
         Row(
-            modifier = Modifier.padding(12.dp).alpha(cardAlpha), // Aplicamos transparencia
+            modifier = Modifier
+                .padding(12.dp)
+                .alpha(cardAlpha), // Aplicamos transparencia
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Si es bloqueo, mostrar diferente (sin hora, con icono)
@@ -88,7 +107,7 @@ fun AppointmentCard(
                 // COLUMNA 1: HORA
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(end = 16.dp)
+                    modifier = Modifier.padding(end = 8.dp)
                 ) {
                     Text(
                         text = timeString,
@@ -104,14 +123,14 @@ fun AppointmentCard(
                 }
 
                 // Separador vertical
-                HorizontalDivider(
+                VerticalDivider(
                     modifier = Modifier
                         .height(40.dp)
                         .width(1.dp),
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
                 // COLUMNA 2: DATOS DEL PACIENTE Y SERVICIO
                 Column(modifier = Modifier.weight(1f)) {
@@ -160,7 +179,7 @@ fun AppointmentCard(
                             )
                         }
                     }
-
+                    PendingBadge()
                 }
 
                 // COLUMNA 3: PODÓLOGO (Badge)
@@ -174,7 +193,7 @@ fun AppointmentCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = appointment.podiatristName.first().toString(), // Inicial "C" o "K"
+                        text = appointment.podiatristName.firstOrNull()?.toString() ?: "?", // Inicial "C" o "K" o "?"
                         modifier = Modifier.padding(8.dp),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold
@@ -186,6 +205,52 @@ fun AppointmentCard(
                     Icon(Icons.Default.CheckCircle, null, tint = Color.Gray)
                 }
             }
+        }
+    }
+}
+
+/**
+ * Badge animado para citas no confirmadas (PENDIENTE).
+ * Punto ámbar pulsante + texto.
+ */
+@Composable
+private fun PendingBadge() {
+    val colors = AppTheme.colors
+    val infiniteTransition = rememberInfiniteTransition(label = "pending_pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+
+    Surface(
+        color = colors.warningContainer,
+        shape = RoundedCornerShape(10.dp),
+        tonalElevation = 0.dp
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+        ) {
+            // Punto pulsante
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .alpha(pulseAlpha)
+                    .clip(CircleShape)
+                    .background(colors.warning)
+            )
+//            Spacer(modifier = Modifier.width(5.dp))
+//            Text(
+//                text = "SIN CONFIRMAR",
+//                color = colors.onWarningContainer,
+//                style = MaterialTheme.typography.labelSmall,
+//                fontWeight = FontWeight.Medium
+//            )
         }
     }
 }

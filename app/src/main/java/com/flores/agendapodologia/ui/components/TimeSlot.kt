@@ -9,10 +9,12 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flores.agendapodologia.model.Appointment
@@ -46,7 +48,7 @@ fun TimeSlot(
             horizontalAlignment = Alignment.End
         ) {
             Text(
-                text = String.format(Locale.getDefault(), "%02d:00", hour),
+                text = remember(LocalConfiguration.current) { String.format(Locale.getDefault(), "%02d:00", hour) },
                 style = MaterialTheme.typography.labelMedium,
                 color = if (isCurrentHour) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
                 fontSize = 12.sp,

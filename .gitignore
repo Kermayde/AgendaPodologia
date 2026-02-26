@@ -48,32 +48,19 @@ local.properties
 *.sublime-workspace
 *.swp
 *.swo
-*~
-.classpath
-.project
-.settings/
-*.launch
 
-# ==================== JetBrains IDEs ====================
-*.iws
-*.iml
-out/
+# ==================== Jetpack Compose ====================
+# Generated files
+build/
+.cxx/
+.externalNativeBuild/
 
-# ==================== OS Specific ====================
-.DS_Store
-Thumbs.db
-ehthumbs.db
+# Intermediate build files
+/intermediates/
+/navigation_json/
+/merged_res/
+/compiled_navigation_res/
 
-# ==================== Kotlin ====================
-*.kotlin_module
-
-# ==================== Android specific ====================
-/gen
-/proguard_logs/
-
-# ==================== Misc ====================
-*.bak
-*.tmp
-*.temp
-*.orig
-
+# APKs
+*.apk
+*.ap_

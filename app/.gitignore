@@ -1,1 +1,10 @@
+# Ignore build directory
 /build
+
+# Additional Jetpack Compose exclusions
+/intermediates/
+/navigation_json/
+/merged_res/
+/compiled_navigation_res/
+*.apk
+*.ap_
