@@ -1,5 +1,6 @@
 package com.flores.agendapodologia.ui.components
 
+import android.icu.text.IDNA
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -41,6 +43,7 @@ fun AppointmentCard(
     shape: Shape = RoundedCornerShape(12.dp),
     isOutsideWorkingHours: Boolean = false
 ) {
+    val colors = AppTheme.colors
     // Formateador de hora (ej: 10:30)
     val configuration = LocalConfiguration.current
     val timeFormatter = remember(configuration) {
@@ -57,13 +60,13 @@ fun AppointmentCard(
     // Color distintivo según si es bloqueo o normal
     val (containerColor, borderColor) = when {
         isBlockout -> {
-            Pair(Color(0xFFFFB74D).copy(alpha = 0.2f), BorderStroke(2.dp, Color(0xFFFFA500)))  // Naranja para bloqueos
+            Pair(colors.warningContainer, BorderStroke(3.dp, colors.warning.copy(alpha = 0.5f)))  // Naranja para bloqueos
         }
         isOutsideWorkingHours -> {
             // Fuera de horario: fondo con tinte gris-azulado y borde punteado azul-gris
             val bgColor = if (isFinished) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                          else Color(0xFFECEFF1) // Gris azulado claro
-            Pair(bgColor, BorderStroke(1.5.dp, Color(0xFF78909C)))  // Borde gris-azul
+                          else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+            Pair(bgColor, BorderStroke(3.dp, MaterialTheme.colorScheme.surfaceVariant))
         }
         else -> {
             val bgColor = if (isFinished) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
@@ -89,17 +92,67 @@ fun AppointmentCard(
             // Si es bloqueo, mostrar diferente (sin hora, con icono)
             if (isBlockout) {
                 // BLOQUEO: Mostrar nombre e icono
+//                Column(modifier = Modifier.weight(1f)) {
+//                    Text(
+//                        text = "🚫 ${appointment.patientName}",
+//                        style = MaterialTheme.typography.titleMedium,
+//                        fontWeight = FontWeight.Bold,
+//                        color = Color(0xFFFFA500)
+//                    )
+//                    Text(
+//                        text = appointment.serviceType,
+//                        style = MaterialTheme.typography.bodyMedium,
+//                        color = Color(0xFFFFA500)
+//                    )
+//                }
+                // COLUMNA 1: HORA
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Block,
+                        contentDescription = "Bloqueo",
+                        tint = colors.onWarningContainer,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+
+                // Separador vertical
+                VerticalDivider(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .width(1.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // COLUMNA 2: DATOS DEL PACIENTE Y SERVICIO
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "🚫 ${appointment.patientName}",
+                        text = "HORA BLOQUEADA",
                         style = MaterialTheme.typography.titleMedium,
+                        color = colors.onWarningContainer,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFA500)
                     )
+                }
+
+                // COLUMNA 3: PODÓLOGO (Badge)
+                val podiatristColor = if (appointment.podiatristName == "Carlos")
+                    MaterialTheme.colorScheme.primaryContainer
+                else
+                    MaterialTheme.colorScheme.tertiaryContainer
+
+                Surface(
+                    color = podiatristColor,
+                    shape = CircleShape,
+                ) {
                     Text(
-                        text = appointment.serviceType,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFFFFA500)
+                        text = appointment.podiatristName.firstOrNull()?.toString() ?: "?", // Inicial "C" o "K" o "?"
+                        modifier = Modifier.padding(8.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             } else {
@@ -140,11 +193,23 @@ fun AppointmentCard(
                         fontWeight = FontWeight.Bold,
                         textDecoration = textDecoration // Tachado si terminó
                     )
-                    Text(
-                        text = appointment.serviceType,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = appointment.serviceType,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        if (!isFinished) {
+                            if (isOutsideWorkingHours) {
+                                AlertBadge()
+                            } else if (appointment.status == AppointmentStatus.PENDIENTE) {
+                                PendingBadge()
+                            }
+                        }
+                    }
 
                     // Indicador si esta cita usó garantía (badge verde)
                     if (appointment.usedWarranty) {
@@ -162,24 +227,6 @@ fun AppointmentCard(
                             )
                         }
                     }
-
-                    // Indicador si la cita está fuera de horario laboral
-                    if (isOutsideWorkingHours) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Surface(
-                            color = Color(0xFFECEFF1),
-                            shape = RoundedCornerShape(8.dp),
-                            tonalElevation = 0.dp
-                        ) {
-                            Text(
-                                text = "⏰ FUERA DE HORARIO",
-                                color = Color(0xFF546E7A),
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                    PendingBadge()
                 }
 
                 // COLUMNA 3: PODÓLOGO (Badge)
@@ -190,7 +237,7 @@ fun AppointmentCard(
 
                 Surface(
                     color = podiatristColor,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = CircleShape,
                 ) {
                     Text(
                         text = appointment.podiatristName.firstOrNull()?.toString() ?: "?", // Inicial "C" o "K" o "?"
@@ -198,11 +245,6 @@ fun AppointmentCard(
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold
                     )
-                }
-                // Icono de Check si terminó
-                if (isFinished) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.CheckCircle, null, tint = Color.Gray)
                 }
             }
         }
@@ -244,13 +286,59 @@ private fun PendingBadge() {
                     .clip(CircleShape)
                     .background(colors.warning)
             )
-//            Spacer(modifier = Modifier.width(5.dp))
-//            Text(
-//                text = "SIN CONFIRMAR",
-//                color = colors.onWarningContainer,
-//                style = MaterialTheme.typography.labelSmall,
-//                fontWeight = FontWeight.Medium
-//            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = "SIN CONFIRMAR",
+                color = colors.onWarningContainer,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+/**
+ * Badge animado para citas no confirmadas (PENDIENTE).
+ * Punto ámbar pulsante + texto.
+ */
+@Composable
+private fun AlertBadge() {
+    val colors = AppTheme.colors
+    val infiniteTransition = rememberInfiniteTransition(label = "pending_pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+
+    Surface(
+        color = colors.errorSoftContainer,
+        shape = RoundedCornerShape(10.dp),
+        tonalElevation = 0.dp
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+        ) {
+            // Punto pulsante
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .alpha(pulseAlpha)
+                    .clip(CircleShape)
+                    .background(colors.errorSoft)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = "FUERA DE HORARIO",
+                color = colors.onErrorSoftContainer,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }

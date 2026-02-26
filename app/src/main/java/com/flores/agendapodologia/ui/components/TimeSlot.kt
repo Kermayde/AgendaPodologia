@@ -85,7 +85,9 @@ fun TimeSlot(
                 .fillMaxHeight()
                 .clickable(enabled = isClickable) { if (isClickable) onSlotClick(hour) }
         ) {
-            Column {
+            Column(
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
                 // Línea separadora superior
                 if (isCurrentHour) {
                     LinearWavyProgressIndicator(
