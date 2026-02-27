@@ -1,6 +1,5 @@
 package com.flores.agendapodologia.ui.components
 
-import android.icu.text.IDNA
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -14,7 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,7 +31,10 @@ import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.AppointmentStatus
 import com.flores.agendapodologia.ui.theme.AppTheme
 import java.text.SimpleDateFormat
-import java.util.*
+
+// ─────────────────────────────────────────────────────────────────
+//  AppointmentCard — tarjeta principal de cita en la agenda
+// ─────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -43,45 +44,23 @@ fun AppointmentCard(
     shape: Shape = RoundedCornerShape(12.dp),
     isOutsideWorkingHours: Boolean = false
 ) {
-    val colors = AppTheme.colors
-    // Formateador de hora (ej: 10:30)
-    val configuration = LocalConfiguration.current
-    val timeFormatter = remember(configuration) {
-        SimpleDateFormat("HH:mm", configuration.locales[0])
-    }
-    val timeString = timeFormatter.format(appointment.date)
+    val isBlockout = appointment.isBlockout
+    val isDimmed = !isBlockout && appointment.status in setOf(
+        AppointmentStatus.FINALIZADA,
+        AppointmentStatus.CANCELADA,
+        AppointmentStatus.NO_ASISTIO
+    )
 
-    // Estilo condicional
-    val isBlockout = appointment.isBlockout  // ← NUEVO
-    val isFinished = appointment.status == AppointmentStatus.FINALIZADA && !isBlockout  // No aplica para bloqueos
-    val isCancelled = appointment.status == AppointmentStatus.CANCELADA && !isBlockout
-    val isNoShow = appointment.status == AppointmentStatus.NO_ASISTIO && !isBlockout
-    val isDimmed = isFinished || isCancelled || isNoShow  // Cualquiera de estos se atenúa
-    val cardAlpha = if (isDimmed) 0.6f else 1f // Más transparente si terminó/canceló/no asistió
-    val textDecoration = if (isDimmed) TextDecoration.LineThrough else null
-
-    // Color distintivo según si es bloqueo o normal
-    val (containerColor, borderColor) = when {
-        isBlockout -> {
-            Pair(colors.warningContainer, BorderStroke(3.dp, colors.warning.copy(alpha = 0.5f)))  // Naranja para bloqueos
-        }
-        isOutsideWorkingHours -> {
-            // Fuera de horario: fondo con tinte gris-azulado y borde punteado azul-gris
-            val bgColor = if (isDimmed) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                          else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-            Pair(bgColor, BorderStroke(3.dp, MaterialTheme.colorScheme.surfaceVariant))
-        }
-        else -> {
-            val bgColor = if (isDimmed) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-                            else MaterialTheme.colorScheme.surface
-            Pair(bgColor, null)  // Color normal para citas
-        }
-    }
+    val (containerColor, borderColor) = resolveCardColors(
+        isBlockout = isBlockout,
+        isOutsideWorkingHours = isOutsideWorkingHours,
+        isDimmed = isDimmed
+    )
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable(onClick = onClick),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor),
         border = borderColor
@@ -89,153 +68,242 @@ fun AppointmentCard(
         Row(
             modifier = Modifier
                 .padding(12.dp)
-                .alpha(cardAlpha), // Aplicamos transparencia
+                .alpha(if (isDimmed) 0.6f else 1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Si es bloqueo, mostrar diferente (sin hora, con icono)
             if (isBlockout) {
-                // BLOQUEO
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(start = 9.dp, end = 16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Block,
-                        contentDescription = "Bloqueo",
-                        tint = colors.onWarningContainer,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-                // Separador vertical
-                VerticalDivider(
-                    modifier = Modifier
-                        .height(40.dp)
-                        .width(1.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // COLUMNA 2: DATOS DEL PACIENTE Y SERVICIO
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "HORA BLOQUEADA",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = colors.onWarningContainer,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                BlockoutCardContent()
             } else {
-                // CITA NORMAL: Mostrar hora + datos
-                // COLUMNA 1: HORA
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(end = 8.dp)
-                ) {
-                    Text(
-                        text = timeString,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = if(Integer.parseInt(timeString.split(":")[0]) < 12) "AM" else "PM",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
-                    )
-                }
-
-                // Separador vertical
-                VerticalDivider(
-                    modifier = Modifier
-                        .height(40.dp),
-                    color = if (!isDimmed)
-                        MaterialTheme.colorScheme.outlineVariant
-                    else
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                AppointmentCardContent(
+                    appointment = appointment,
+                    isDimmed = isDimmed,
+                    isOutsideWorkingHours = isOutsideWorkingHours
                 )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // COLUMNA 2: DATOS DEL PACIENTE Y SERVICIO
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = appointment.patientName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        textDecoration = textDecoration // Tachado si terminó
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = when {
-                                isCancelled -> "Cancelada"
-                                isNoShow -> "No Asistió"
-                                else -> appointment.serviceType
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = when {
-                                isCancelled || isNoShow -> MaterialTheme.colorScheme.error
-                                else -> MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        if (!isDimmed) {
-                            if (isOutsideWorkingHours) {
-                                AlertBadge()
-                            } else if (!appointment.isReminderSent) {
-                                UnconfirmBadge()
-                            }
-                        }
-                        else if (appointment.usedWarranty) {
-                            WarrantyBadge()
-                        }
-                    }
-                }
-
-                // COLUMNA 3: PODÓLOGO (Badge)
-                val podiatristColor = if (appointment.podiatristName == "Carlos")
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.tertiaryContainer
-
-                Surface(
-                    color = podiatristColor,
-                    shape = CircleShape,
-                ) {
-                    Text(
-                        text = appointment.podiatristName.firstOrNull()?.toString() ?: "?", // Inicial "C" o "K" o "?"
-                        modifier = Modifier.padding(8.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
             }
         }
     }
 }
 
+// ─────────────────────────────────────────────────────────────────
+//  Contenido interno: Bloqueo
+// ─────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun RowScope.BlockoutCardContent() {
+    val colors = AppTheme.colors
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(start = 9.dp, end = 16.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Block,
+            contentDescription = "Bloqueo",
+            tint = colors.onWarningContainer,
+            modifier = Modifier.size(40.dp)
+        )
+    }
+
+    CardDivider()
+    Spacer(modifier = Modifier.width(8.dp))
+
+    Column(modifier = Modifier.weight(1f)) {
+        Text(
+            text = "HORA BLOQUEADA",
+            style = MaterialTheme.typography.titleMedium,
+            color = colors.onWarningContainer,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Contenido interno: Cita normal
+// ─────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun RowScope.AppointmentCardContent(
+    appointment: Appointment,
+    isDimmed: Boolean,
+    isOutsideWorkingHours: Boolean
+) {
+    val timeString = rememberFormattedTime(appointment)
+    val isCancelled = appointment.status == AppointmentStatus.CANCELADA
+    val isNoShow = appointment.status == AppointmentStatus.NO_ASISTIO
+
+    TimeColumn(timeString)
+    CardDivider(isDimmed)
+    Spacer(modifier = Modifier.width(8.dp))
+
+    // Info de la cita
+    Column(modifier = Modifier.weight(1f)) {
+        Text(
+            text = appointment.patientName,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            textDecoration = if (isDimmed) TextDecoration.LineThrough else null
+        )
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ServiceOrStatusText(
+                isCancelled = isCancelled,
+                isNoShow = isNoShow,
+                serviceType = appointment.serviceType
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            StatusBadge(
+                isDimmed = isDimmed,
+                isOutsideWorkingHours = isOutsideWorkingHours,
+                isReminderSent = appointment.isReminderSent,
+                usedWarranty = appointment.usedWarranty
+            )
+        }
+    }
+
+    PodiatristBadge(appointment.podiatristName)
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Subcomponentes atómicos
+// ─────────────────────────────────────────────────────────────────
+
+/** Columna con la hora y AM/PM. */
+@Composable
+private fun TimeColumn(timeString: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(end = 8.dp)
+    ) {
+        Text(
+            text = timeString,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = if (timeString.substringBefore(":").toInt() < 12) "AM" else "PM",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray
+        )
+    }
+}
+
+/** Texto que muestra el tipo de servicio o el estado (Cancelada / No Asistió). */
+@Composable
+private fun ServiceOrStatusText(
+    isCancelled: Boolean,
+    isNoShow: Boolean,
+    serviceType: String
+) {
+    val (text, color) = when {
+        isCancelled -> "Cancelada" to MaterialTheme.colorScheme.error
+        isNoShow    -> "No Asistió" to MaterialTheme.colorScheme.error
+        else        -> serviceType to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = color
+    )
+}
+
+/** Muestra el badge contextual según el estado de la cita. */
+@Composable
+private fun StatusBadge(
+    isDimmed: Boolean,
+    isOutsideWorkingHours: Boolean,
+    isReminderSent: Boolean,
+    usedWarranty: Boolean
+) {
+    val colors = AppTheme.colors
+    when {
+        !isDimmed && isOutsideWorkingHours -> PulsingBadge(
+            text = "INTEMPESTIVO",
+            dotColor = colors.errorSoft,
+            containerColor = colors.errorSoftContainer,
+            textColor = colors.onErrorSoftContainer
+        )
+        !isDimmed && !isReminderSent -> PulsingBadge(
+            text = "SIN CONFIRMAR",
+            dotColor = colors.warning,
+            containerColor = colors.warningContainer,
+            textColor = colors.onWarningContainer
+        )
+        isDimmed && usedWarranty -> PulsingBadge(
+            text = "GARANTÍA",
+            dotColor = colors.success,
+            containerColor = colors.successContainer,
+            textColor = colors.onSuccessContainer,
+            animated = false
+        )
+    }
+}
+
+/** Inicial del podólogo dentro de un círculo coloreado. */
+@Composable
+private fun PodiatristBadge(podiatristName: String) {
+    val color = if (podiatristName == "Carlos")
+        MaterialTheme.colorScheme.primaryContainer
+    else
+        MaterialTheme.colorScheme.tertiaryContainer
+
+    Surface(color = color, shape = CircleShape) {
+        Text(
+            text = podiatristName.firstOrNull()?.toString() ?: "?",
+            modifier = Modifier.padding(8.dp),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+/** Separador vertical reutilizado entre la hora y la info. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun CardDivider(isDimmed: Boolean = false) {
+    VerticalDivider(
+        modifier = Modifier.height(40.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.let {
+            if (isDimmed) it.copy(alpha = 0.6f) else it
+        }
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Badge genérico con punto pulsante (o estático)
+// ─────────────────────────────────────────────────────────────────
+
 /**
- * Badge animado para citas no confirmadas (PENDIENTE).
- * Punto ámbar pulsante + texto.
+ * Badge reutilizable: punto (opcionalmente pulsante) + texto.
+ *
+ * @param animated Si `true` el punto pulsa; si `false` es estático.
  */
 @Composable
-private fun UnconfirmBadge() {
-    val colors = AppTheme.colors
-    val infiniteTransition = rememberInfiniteTransition(label = "pending_pulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse_alpha"
-    )
+private fun PulsingBadge(
+    text: String,
+    dotColor: Color,
+    containerColor: Color,
+    textColor: Color,
+    animated: Boolean = true
+) {
+    val dotAlpha = if (animated) {
+        val transition = rememberInfiniteTransition(label = "badge_pulse")
+        val alpha by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.4f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulse_alpha"
+        )
+        alpha
+    } else 1f
 
     Surface(
-        color = colors.warningContainer,
+        color = containerColor,
         shape = CircleShape,
         tonalElevation = 0.dp
     ) {
@@ -243,18 +311,17 @@ private fun UnconfirmBadge() {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
         ) {
-            // Punto pulsante
             Box(
                 modifier = Modifier
                     .size(7.dp)
-                    .alpha(pulseAlpha)
+                    .alpha(dotAlpha)
                     .clip(CircleShape)
-                    .background(colors.warning)
+                    .background(dotColor)
             )
             Spacer(modifier = Modifier.width(5.dp))
             Text(
-                text = "SIN CONFIRMAR",
-                color = colors.onWarningContainer,
+                text = text,
+                color = textColor,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium
             )
@@ -262,74 +329,41 @@ private fun UnconfirmBadge() {
     }
 }
 
-@Composable
-private fun AlertBadge() {
-    val colors = AppTheme.colors
-    val infiniteTransition = rememberInfiniteTransition(label = "pending_pulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse_alpha"
-    )
+// ─────────────────────────────────────────────────────────────────
+//  Utilidades
+// ─────────────────────────────────────────────────────────────────
 
-    Surface(
-        color = colors.errorSoftContainer,
-        shape = CircleShape,
-        tonalElevation = 0.dp
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-        ) {
-            // Punto pulsante
-            Box(
-                modifier = Modifier
-                    .size(7.dp)
-                    .alpha(pulseAlpha)
-                    .clip(CircleShape)
-                    .background(colors.errorSoft)
-            )
-            Spacer(modifier = Modifier.width(5.dp))
-            Text(
-                text = "INTEMPESTIVO",
-                color = colors.onErrorSoftContainer,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium
-            )
+/** Calcula los colores del Card según el contexto. */
+@Composable
+private fun resolveCardColors(
+    isBlockout: Boolean,
+    isOutsideWorkingHours: Boolean,
+    isDimmed: Boolean
+): Pair<Color, BorderStroke?> {
+    val colors = AppTheme.colors
+    return when {
+        isBlockout -> colors.warningContainer to BorderStroke(3.dp, colors.warning.copy(alpha = 0.5f))
+
+        isOutsideWorkingHours -> {
+            val bg = if (isDimmed) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                     else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+            bg to BorderStroke(3.dp, MaterialTheme.colorScheme.surfaceVariant)
+        }
+
+        else -> {
+            val bg = if (isDimmed) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                     else MaterialTheme.colorScheme.surface
+            bg to null
         }
     }
 }
-@Composable
-private fun WarrantyBadge() {
-    val colors = AppTheme.colors
 
-    Surface(
-        color = colors.successContainer,
-        shape = CircleShape,
-        tonalElevation = 0.dp
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-        ) {
-            // Punto pulsante
-            Box(
-                modifier = Modifier
-                    .size(7.dp)
-                    .clip(CircleShape)
-                    .background(colors.success)
-            )
-            Spacer(modifier = Modifier.width(5.dp))
-            Text(
-                text = "GARANTÍA",
-                color = colors.onSuccessContainer,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium
-            )
-        }
+/** Formatea la hora de la cita usando el locale del dispositivo. */
+@Composable
+private fun rememberFormattedTime(appointment: Appointment): String {
+    val configuration = LocalConfiguration.current
+    val formatter = remember(configuration) {
+        SimpleDateFormat("HH:mm", configuration.locales[0])
     }
+    return formatter.format(appointment.date)
 }
