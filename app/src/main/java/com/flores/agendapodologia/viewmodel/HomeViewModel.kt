@@ -93,7 +93,6 @@ class HomeViewModel(
         launchWithLoading {
             val newPatient = Patient(name = name, phone = phone, reminderPreference = reminderPreference)
             repository.addPatient(newPatient)
-                .onSuccess { _uiEvent.emit(UiEvent.ShowSuccess("Paciente guardado")) }
                 .onFailure { emitError("Error al guardar paciente", it) }
         }
     }
@@ -121,8 +120,6 @@ class HomeViewModel(
             repository.updatePatientStatusWithReason(patient.id, newStatus, reason)
                 .onSuccess {
                     _currentPatient.value = patient.copy(status = newStatus, blockReason = reason)
-                    val msg = if (newStatus == PatientStatus.BLOCKED) "Paciente bloqueado" else "Paciente desbloqueado"
-                    _uiEvent.emit(UiEvent.ShowSuccess(msg))
                 }
                 .onFailure { emitError("Error al cambiar estado del paciente", it) }
         }
@@ -145,7 +142,6 @@ class HomeViewModel(
             repository.updatePatientAndHistory(patient)
                 .onSuccess {
                     _currentPatient.value = patient
-                    _uiEvent.emit(UiEvent.ShowSuccess("Paciente actualizado"))
                     onSuccess()
                 }
                 .onFailure { emitError("Error al actualizar paciente", it) }
@@ -271,7 +267,6 @@ class HomeViewModel(
         launchWithLoading {
             repository.updateAppointmentNotes(current.id, notes)
                 .onSuccess {
-                    _uiEvent.emit(UiEvent.ShowSuccess("Notas guardadas"))
                     onSuccess()
                 }
                 .onFailure { emitError("Error al guardar notas", it) }
@@ -298,7 +293,6 @@ class HomeViewModel(
                         completedAt = Date(),
                         usedWarranty = usedWarranty
                     )
-                    _uiEvent.emit(UiEvent.ShowSuccess("Cita finalizada"))
                     onSuccess()
                 }
                 .onFailure { emitError("Error al finalizar cita", it) }
@@ -310,7 +304,6 @@ class HomeViewModel(
             repository.updateAppointment(appointment)
                 .onSuccess {
                     _currentDetailAppointment.value = appointment
-                    _uiEvent.emit(UiEvent.ShowSuccess("Cita actualizada"))
                     onSuccess()
                 }
                 .onFailure { emitError("Error al actualizar cita", it) }
@@ -373,7 +366,6 @@ class HomeViewModel(
 
             repository.scheduleAppointment(appointment, patientToSave)
                 .onSuccess {
-                    _uiEvent.emit(UiEvent.ShowSuccess("Cita agendada correctamente"))
                     onSuccess()
                 }
                 .onFailure { emitError("Error al agendar cita", it) }
@@ -402,7 +394,6 @@ class HomeViewModel(
 
             repository.addAppointmentOnly(appointment)
                 .onSuccess {
-                    _uiEvent.emit(UiEvent.ShowSuccess("Horario bloqueado"))
                     onSuccess()
                 }
                 .onFailure { emitError("Error al bloquear horario", it) }

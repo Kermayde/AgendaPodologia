@@ -4,20 +4,35 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -71,10 +86,12 @@ class MainActivity : ComponentActivity() {
 
             AgendaPodologiaTheme {
                 val snackbarHostState = remember { SnackbarHostState() }
+                var isErrorSnackbar by remember { mutableStateOf(false) }
 
                 // Observar eventos UI globales (éxito / error)
                 LaunchedEffect(Unit) {
                     viewModel.uiEvent.collect { event ->
+                        isErrorSnackbar = event is UiEvent.ShowError
                         val message = when (event) {
                             is UiEvent.ShowSuccess -> event.message
                             is UiEvent.ShowError -> event.message
@@ -86,14 +103,18 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                ) { scaffoldPadding ->
+                // Calcular el padding inferior para posicionar el Snackbar encima del NavBar
+                val density = LocalDensity.current
+                val navBarInsetBottom = with(density) {
+                    WindowInsets.navigationBars.getBottom(this).toDp()
+                }
+                // Altura del FloatingNavBar (~61dp) + su padding inferior (navBarInset + 16dp) + gap
+                val snackbarBottomPadding = if (showNavBar) navBarInsetBottom + 82.dp else 16.dp
+
+                Surface {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(scaffoldPadding)
                     ) {
                         NavHost(navController = navController, startDestination = AppScreens.Home.route) {
 
@@ -223,6 +244,46 @@ class MainActivity : ComponentActivity() {
                                 },
                                 pendingRemindersCount = pendingRemindersCount,
                                 modifier = Modifier.align(Alignment.BottomCenter)
+                            )
+                        }
+
+                        // ── Snackbar personalizado (encima del NavBar) ──
+                        val containerColor by animateColorAsState(
+                            targetValue = if (isErrorSnackbar)
+                                MaterialTheme.colorScheme.errorContainer
+                            else
+                                MaterialTheme.colorScheme.inverseSurface,
+                            animationSpec = tween(300),
+                            label = "snackbarColor"
+                        )
+                        val contentColor by animateColorAsState(
+                            targetValue = if (isErrorSnackbar)
+                                MaterialTheme.colorScheme.onErrorContainer
+                            else
+                                MaterialTheme.colorScheme.inverseOnSurface,
+                            animationSpec = tween(300),
+                            label = "snackbarContentColor"
+                        )
+
+                        SnackbarHost(
+                            hostState = snackbarHostState,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    bottom = snackbarBottomPadding
+                                )
+                        ) { snackbarData ->
+                            Snackbar(
+                                snackbarData = snackbarData,
+                                shape = MaterialTheme.shapes.medium,
+                                containerColor = MaterialTheme.colorScheme.inverseSurface,
+                                contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                                actionContentColor = if (isErrorSnackbar)
+                                    MaterialTheme.colorScheme.error
+                                else
+                                    MaterialTheme.colorScheme.inversePrimary
                             )
                         }
                     }

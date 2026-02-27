@@ -1,6 +1,5 @@
 package com.flores.agendapodologia.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,12 +13,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.DaySchedule
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,7 +26,6 @@ fun SettingsScreen(
     viewModel: HomeViewModel,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val currentSettings by viewModel.clinicSettings.collectAsState()
 
     // Estado local para editar antes de guardar
@@ -60,7 +58,6 @@ fun SettingsScreen(
                 actions = {
                     IconButton(onClick = {
                         viewModel.updateSettings(editedSettings) {
-                            Toast.makeText(context, "Horarios actualizados", Toast.LENGTH_SHORT).show()
                             hasChanges = false
                             onBack()
                         }
@@ -209,7 +206,7 @@ fun HourStepperRow(label: String, currentHour: Int, onHourChange: (Int) -> Unit)
             ) { Icon(Icons.Default.Delete, "Menos") }
 
             Text(
-                text = String.format(Locale.getDefault(), "%02d:00", currentHour),
+                text = String.format(LocalLocale.current.platformLocale, "%02d:00", currentHour),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 8.dp)
