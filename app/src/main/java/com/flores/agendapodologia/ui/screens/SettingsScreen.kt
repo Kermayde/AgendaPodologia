@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.DaySchedule
@@ -27,6 +28,12 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val currentSettings by viewModel.clinicSettings.collectAsState()
+
+    // ── Padding inferior para no quedar tapado por la FloatingNavBar ──
+
+    val bottomPadding = with(LocalDensity.current) {
+        WindowInsets.navigationBars.getBottom(this).toDp()
+    } + NAV_BAR_OFFSET
 
     // Estado local para editar antes de guardar
     var editedSettings by remember { mutableStateOf(currentSettings) }
@@ -117,7 +124,7 @@ fun SettingsScreen(
                 hasChanges = true
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(bottomPadding))
         }
     }
 }

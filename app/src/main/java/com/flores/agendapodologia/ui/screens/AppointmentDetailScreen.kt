@@ -162,16 +162,17 @@ fun AppointmentDetailScreen(
                 }
             )
         },
-        floatingActionButton = {
-            if (!isEditing && appointment?.status == AppointmentStatus.PENDIENTE) {
-                ExtendedFloatingActionButton(
-                    onClick = { showFinishDialog = true },
-                    icon = { Icon(Icons.Default.Check, null) },
-                    text = { Text("Terminar Cita") },
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            }
-        },
+//        floatingActionButton = {
+//            if (!isEditing && appointment?.status == AppointmentStatus.PENDIENTE) {
+//                ExtendedFloatingActionButton(
+//                    onClick = { showFinishDialog = true },
+//                    icon = { Icon(Icons.Default.Check, null) },
+//                    text = { Text("Terminar Cita") },
+//                    containerColor = MaterialTheme.colorScheme.primary
+//                )
+//            }
+//        },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (!isEditing && appointment?.status == AppointmentStatus.PENDIENTE) {
                 Surface(
@@ -181,6 +182,7 @@ fun AppointmentDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .navigationBarsPadding()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -202,6 +204,12 @@ fun AppointmentDetailScreen(
                             )
                         ) {
                             Text("No Asistió", maxLines = 1)
+                        }
+
+                        Button(
+                            onClick = { showFinishDialog = true },
+                        ) {
+                            Text("Terminar Cita", maxLines = 1)
                         }
 
                         OutlinedButton(

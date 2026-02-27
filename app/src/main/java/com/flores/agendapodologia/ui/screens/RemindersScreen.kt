@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.ReminderPreference
@@ -25,6 +26,7 @@ import com.flores.agendapodologia.viewmodel.PendingReminder
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.ui.platform.LocalLocale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +36,12 @@ fun RemindersScreen(
 ) {
     val reminders by viewModel.pendingReminders.collectAsState()
     val context = LocalContext.current
+
+    // ── Padding inferior para no quedar tapado por la FloatingNavBar ──
+
+    val bottomPadding = with(LocalDensity.current) {
+        WindowInsets.navigationBars.getBottom(this).toDp()
+    } + NAV_BAR_OFFSET
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -80,8 +88,8 @@ fun RemindersScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = bottomPadding, start = 16.dp, end = 16.dp, top = 16.dp)
             ) {
                 items(reminders, key = { it.appointment.id }) { reminder ->
                     ReminderCard(
@@ -138,7 +146,7 @@ private fun ReminderCard(
     onSendReminder: () -> Unit,
     onMarkSent: () -> Unit
 ) {
-    val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+    val timeFormat = SimpleDateFormat("hh:mm a", LocalLocale.current.platformLocale)
     val timeStr = timeFormat.format(reminder.appointment.date)
 
     Card(

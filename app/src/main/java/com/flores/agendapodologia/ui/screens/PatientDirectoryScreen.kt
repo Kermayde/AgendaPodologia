@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flores.agendapodologia.model.Patient
@@ -32,8 +33,16 @@ fun PatientDirectoryScreen(
     val patients by viewModel.directoryList.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
 
+    // ── Padding inferior para no quedar tapado por la FloatingNavBar ──
+
+    val bottomPadding = with(LocalDensity.current) {
+        WindowInsets.navigationBars.getBottom(this).toDp()
+    } + NAV_BAR_OFFSET
+
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("Directorio de Pacientes") },
@@ -58,7 +67,10 @@ fun PatientDirectoryScreen(
             )
 
             // LISTA DE PACIENTES
-            LazyColumn {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = bottomPadding)
+            ) {
                 items(patients) { patient ->
                     PatientDirectoryItem(patient = patient, onClick = { onPatientClick(patient) })
                 }

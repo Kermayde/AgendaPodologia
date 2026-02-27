@@ -35,7 +35,7 @@ private const val BASE_START_HOUR = 6
 private const val BASE_END_HOUR = 21
 
 /** Altura aproximada de FloatingNavBar + padding externo. */
-private val NAV_BAR_OFFSET = 90.dp
+val NAV_BAR_OFFSET = 90.dp
 
 // ─────────────────────────────────────────────────────────────────
 //  TimelineScreen
