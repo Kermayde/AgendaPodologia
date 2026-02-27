@@ -22,16 +22,6 @@ fun TimelineScreen(
     onAppointmentClick: (Appointment) -> Unit,
     onAddAtHourClick: (Int) -> Unit
 ) {
-    // Definimos el rango visual fijo de la agenda (ej. de 6 AM a 9 PM)
-    // Esto asegura que la pantalla siempre se vea igual de larga, independientemente
-    // de si abren a las 8 o a las 10. Las horas cerradas se pintarán grises.
-    val startVisualHour = 6
-    val endVisualHour = 21
-    val hours = (startVisualHour..endVisualHour).toList()
-
-    // Estado del scroll
-    val listState = rememberLazyListState()
-
     // MEJORA 2: Agrupar citas por hora UNA SOLA VEZ (optimización)
     val appointmentsByHour = remember(appointments) {
         appointments.groupBy { appt ->
@@ -39,6 +29,25 @@ fun TimelineScreen(
                 .get(Calendar.HOUR_OF_DAY)
         }
     }
+
+    // Rango visual DINÁMICO: base 6–21, pero se expande si hay citas fuera de ese rango.
+    // Así nunca se pierden citas agendadas por accidente en horarios extremos.
+    val baseStartHour = 6
+    val baseEndHour = 21
+
+    val startVisualHour = remember(appointmentsByHour) {
+        if (appointmentsByHour.isEmpty()) baseStartHour
+        else minOf(baseStartHour, appointmentsByHour.keys.min())
+    }
+    val endVisualHour = remember(appointmentsByHour) {
+        if (appointmentsByHour.isEmpty()) baseEndHour
+        else maxOf(baseEndHour, appointmentsByHour.keys.max())
+    }
+
+    val hours = (startVisualHour..endVisualHour).toList()
+
+    // Estado del scroll
+    val listState = rememberLazyListState()
 
     // MEJORA 1: AUTO-SCROLL A LA HORA ACTUAL (reactivo a cambios de fecha)
     LaunchedEffect(selectedDate) {  // Se ejecuta cuando cambia selectedDate
