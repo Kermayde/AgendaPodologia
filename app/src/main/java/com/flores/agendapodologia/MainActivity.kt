@@ -123,7 +123,10 @@ class MainActivity : ComponentActivity() {
 
                                 AppointmentDetailScreen(
                                     viewModel = viewModel,
-                                    onBack = { navController.popBackStack() }
+                                    onBack = { navController.popBackStack() },
+                                    onNavigateToPatient = { patientId ->
+                                        navController.navigate(AppScreens.PatientDetail.createRoute(patientId))
+                                    }
                                 )
                             }
 

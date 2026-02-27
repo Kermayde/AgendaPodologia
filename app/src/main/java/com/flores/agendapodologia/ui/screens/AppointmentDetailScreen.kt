@@ -15,6 +15,9 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.AppointmentStatus
 import com.flores.agendapodologia.model.PaymentMethod
 import com.flores.agendapodologia.ui.components.DatePickerModal
-import com.flores.agendapodologia.ui.components.FinishAppointmentDialog
+import com.flores.agendapodologia.ui.components.FinishAppointmentBottomSheet
 import com.flores.agendapodologia.ui.components.ServiceSelector
 import com.flores.agendapodologia.ui.components.StatusSelector
 import com.flores.agendapodologia.ui.components.TimePickerModal
@@ -36,12 +39,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.sequences.ifEmpty
 import kotlin.text.format
+import androidx.compose.ui.platform.LocalLocale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppointmentDetailScreen(
     viewModel: HomeViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToPatient: (String) -> Unit = {}
 ) {
     // Observamos la lista
     val historyList by viewModel.lastAppointments.collectAsState()
@@ -85,8 +90,8 @@ fun AppointmentDetailScreen(
     }
 
     // Formateadores de fecha
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", LocalLocale.current.platformLocale)
+    val timeFormat = SimpleDateFormat("HH:mm", LocalLocale.current.platformLocale)
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -165,6 +170,61 @@ fun AppointmentDetailScreen(
                     text = { Text("Terminar Cita") },
                     containerColor = MaterialTheme.colorScheme.primary
                 )
+            }
+        },
+        bottomBar = {
+            if (!isEditing && appointment?.status == AppointmentStatus.PENDIENTE) {
+                Surface(
+                    tonalElevation = 3.dp,
+                    shadowElevation = 3.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                if (appointment != null) {
+                                    val updated = appointment!!.copy(
+                                        status = AppointmentStatus.NO_ASISTIO,
+                                        isPaid = false,
+                                        paymentMethod = PaymentMethod.NONE,
+                                        completedAt = null
+                                    )
+                                    viewModel.updateAppointment(updated) {}
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("No Asistió", maxLines = 1)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                if (appointment != null) {
+                                    val updated = appointment!!.copy(
+                                        status = AppointmentStatus.CANCELADA,
+                                        isPaid = false,
+                                        paymentMethod = PaymentMethod.NONE,
+                                        completedAt = null
+                                    )
+                                    viewModel.updateAppointment(updated) {}
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Canceló", maxLines = 1)
+                        }
+                    }
+                }
             }
         }
     ) { padding ->
@@ -245,6 +305,73 @@ fun AppointmentDetailScreen(
                 )
 
             } else {
+                // SECCIÓN 0: Info del Paciente (Clickable para ir al detalle)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            appointment?.patientId?.let { patientId ->
+                                onNavigateToPatient(patientId)
+                            }
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = appointment?.patientName ?: "",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.Phone,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = appointment?.patientPhone ?: "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text(
+                                text = "Servicio: ${appointment?.serviceType ?: ""}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Podólogo: ${appointment?.podiatristName ?: ""}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "Ver paciente",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // 1. Banner de Garantía (Lo ponemos al principio para que sea evidente)
                 // Mostrar banner SOLO si la cita actual es del tipo que aplica garantía (por ejemplo: Correcciones)
                 if (warrantyState.isActive && appointment?.serviceType == ServiceConstants.WARRANTY_APPLICABLE_SERVICE) {
@@ -261,83 +388,7 @@ fun AppointmentDetailScreen(
                     )
                 }
 
-                // SECCIÓN 1: Historial Reciente
-                Text("Historial Reciente (Últimas 3 visitas)",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (historyList.isNotEmpty()) {
-                    // CORRECCIÓN: Quitamos LazyColumn y usamos Column + forEach
-                    // También quitamos el modifier.weight(1f) porque ya estamos en un scroll
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        historyList.forEach { pastAppointment ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
-                                )
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.AutoMirrored.Filled.List, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = dateFormat.format(pastAppointment.date),
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                        // Indicador si esta cita usó garantía
-                                        if (pastAppointment.usedWarranty) {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = "[POR GARANTÍA]",
-                                                color = Color(0xFF2E7D32), // verde
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = pastAppointment.notes.ifEmpty { "Sin notas." },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        maxLines = 3
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Atendió: ${pastAppointment.podiatristName}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.align(Alignment.End),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Caso vacío
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.LightGray.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "No hay visitas anteriores registradas.",
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-                androidx.compose.material3.HorizontalDivider()
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // SECCIÓN 2: Sesión Actual (Lo importante)
+                // SECCIÓN 1: Sesión Actual (Lo importante)
                 Text("Notas de la Sesión Actual", style = MaterialTheme.typography.titleMedium)
                 Text(
                     text = "Escribe aquí el tratamiento, observaciones o recomendaciones.",
@@ -368,24 +419,124 @@ fun AppointmentDetailScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Guardar Cambios")
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+                androidx.compose.material3.HorizontalDivider()
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // SECCIÓN 2: Historial Reciente
+                Text("Historial Reciente (Últimas 3 visitas)",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (historyList.isNotEmpty()) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        historyList.forEach { pastAppointment ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+                                )
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.AutoMirrored.Filled.List, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = dateFormat.format(pastAppointment.date),
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        // Indicador si esta cita usó garantía
+                                        if (pastAppointment.usedWarranty) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "[GARANTÍA]",
+                                                color = Color(0xFF2E7D32), // verde
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    // Tipo de servicio
+                                    Text(
+                                        text = "Servicio: ${pastAppointment.serviceType}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+
+                                    // Estado de la cita
+                                    val statusText = when (pastAppointment.status) {
+                                        AppointmentStatus.FINALIZADA -> "Finalizada"
+                                        AppointmentStatus.CANCELADA -> "Cancelada"
+                                        AppointmentStatus.NO_ASISTIO -> "No Asistió"
+                                        AppointmentStatus.PENDIENTE -> "Pendiente"
+                                    }
+                                    val statusColor = when (pastAppointment.status) {
+                                        AppointmentStatus.FINALIZADA -> Color(0xFF2E7D32)
+                                        AppointmentStatus.CANCELADA -> MaterialTheme.colorScheme.error
+                                        AppointmentStatus.NO_ASISTIO -> MaterialTheme.colorScheme.error
+                                        AppointmentStatus.PENDIENTE -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                    Text(
+                                        text = "Estado: $statusText",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = statusColor
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        text = pastAppointment.notes.ifEmpty { "Sin notas." },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 3
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Atendió: ${pastAppointment.podiatristName}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.align(Alignment.End),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Caso vacío
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.LightGray.copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "No hay visitas anteriores registradas.",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
+                }
             }
         }
     }
 
-    // --- DIÁLOGOS ---
+    // --- BOTTOM SHEET ---
     if (showFinishDialog) {
-        FinishAppointmentDialog(
-            serviceType = appointment?.serviceType ?: "Otro", // <--- LE PASAMOS EL SERVICIO
-            // La garantía solo debe aplicarse para el servicio aplicable (Correcciones)
+        FinishAppointmentBottomSheet(
+            serviceType = appointment?.serviceType ?: "Otro",
             isWarrantyActive = warrantyState.isActive && appointment?.serviceType == ServiceConstants.WARRANTY_APPLICABLE_SERVICE,
             onDismiss = { showFinishDialog = false },
-            onConfirm = { isPaid, method, amount, overrideReason -> // Ahora recibimos overrideReason
-                // Calculamos si se está usando la garantía en esta finalización:
+            onConfirm = { isPaid, method, amount, overrideReason ->
                 val usedWarranty = (!isPaid) && (warrantyState.isActive && appointment?.serviceType == ServiceConstants.WARRANTY_APPLICABLE_SERVICE)
 
-                // Si se proporciona overrideReason, lo adjuntamos a las notas al finalizar
                 viewModel.finishAppointment(isPaid, method, amount, usedWarranty) {
-                    // Si hay una razon de override y no está vacía, concatenamos a las notas existente
                     if (overrideReason.isNotBlank()) {
                         val current = viewModel.currentDetailAppointment.value
                         if (current != null) {
