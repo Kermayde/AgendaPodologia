@@ -151,6 +151,7 @@ private fun RowScope.SlotContent(
 @Composable
 private fun SlotDivider(isCurrentHour: Boolean) {
     if (isCurrentHour) {
+        Spacer(modifier = Modifier.height(2.dp))
         LinearWavyProgressIndicator(
             progress = { 0.949f },
             amplitude = { 0.3f },
@@ -159,6 +160,7 @@ private fun SlotDivider(isCurrentHour: Boolean) {
             stopSize = 0.dp,
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(2.dp))
     } else {
         Spacer(
             modifier = Modifier
@@ -209,7 +211,7 @@ private fun EmptySlotPlaceholder(
             height = 45.dp
         )
         hasBlockout -> SlotPlaceholderStyle(
-            background = colors.onWarningContainer,
+            background = colors.warningContainer,
             text = "Horario Bloqueado",
             textColor = colors.onWarningContainer.copy(alpha = 0.5f),
             height = 60.dp

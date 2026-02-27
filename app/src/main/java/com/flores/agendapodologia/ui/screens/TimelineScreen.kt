@@ -1,21 +1,45 @@
 package com.flores.agendapodologia.ui.screens
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.ClinicSettings
 import com.flores.agendapodologia.ui.components.TimeSlot
-import java.util.Calendar
+import kotlinx.coroutines.delay
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+
+// ─────────────────────────────────────────────────────────────────
+//  Constantes
+// ─────────────────────────────────────────────────────────────────
+
+private const val BASE_START_HOUR = 6
+private const val BASE_END_HOUR = 21
+
+/** Altura aproximada de FloatingNavBar + padding externo. */
+private val NAV_BAR_OFFSET = 90.dp
+
+// ─────────────────────────────────────────────────────────────────
+//  TimelineScreen
+// ─────────────────────────────────────────────────────────────────
 
 @Composable
 fun TimelineScreen(
@@ -25,79 +49,92 @@ fun TimelineScreen(
     onAppointmentClick: (Appointment) -> Unit,
     onAddAtHourClick: (Int) -> Unit
 ) {
-    // MEJORA 2: Agrupar citas por hora UNA SOLA VEZ (optimización)
+    // ── Datos derivados (se recalculan solo cuando cambian las citas) ──
+
+    val zoneId = remember { ZoneId.systemDefault() }
+
     val appointmentsByHour = remember(appointments) {
         appointments.groupBy { appt ->
-            Calendar.getInstance().apply { time = appt.date }
-                .get(Calendar.HOUR_OF_DAY)
+            Instant.ofEpochMilli(appt.date.time)
+                .atZone(zoneId)
+                .hour
         }
     }
 
-    // Rango visual DINÁMICO: base 6–21, pero se expande si hay citas fuera de ese rango.
-    // Así nunca se pierden citas agendadas por accidente en horarios extremos.
-    val baseStartHour = 6
-    val baseEndHour = 21
-
-    val startVisualHour = remember(appointmentsByHour) {
-        if (appointmentsByHour.isEmpty()) baseStartHour
-        else minOf(baseStartHour, appointmentsByHour.keys.min())
-    }
-    val endVisualHour = remember(appointmentsByHour) {
-        if (appointmentsByHour.isEmpty()) baseEndHour
-        else maxOf(baseEndHour, appointmentsByHour.keys.max())
+    // Rango visual dinámico: base 6–21, se expande si hay citas fuera de ese rango.
+    val (startVisualHour, endVisualHour) = remember(appointmentsByHour) {
+        if (appointmentsByHour.isEmpty()) {
+            BASE_START_HOUR to BASE_END_HOUR
+        } else {
+            minOf(BASE_START_HOUR, appointmentsByHour.keys.min()) to
+                    maxOf(BASE_END_HOUR, appointmentsByHour.keys.max())
+        }
     }
 
-    val hours = (startVisualHour..endVisualHour).toList()
+    val hours = remember(startVisualHour, endVisualHour) {
+        (startVisualHour..endVisualHour).toList()
+    }
 
-    // Estado del scroll
+    // Hora actual reactiva: se recalcula al cambiar de fecha y se actualiza
+    // periódicamente solo mientras la pantalla es visible (STARTED).
+    var currentSystemHour by remember { mutableIntStateOf(LocalDateTime.now().hour) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    LaunchedEffect(selectedDate, lifecycleOwner) {
+        // Recalcular inmediatamente al cambiar de fecha.
+        currentSystemHour = LocalDateTime.now().hour
+        // El bloque se ejecuta solo en STARTED y se cancela al pasar a STOPPED,
+        // evitando trabajo innecesario cuando la pantalla no es visible.
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                delay(30_000L)
+                currentSystemHour = LocalDateTime.now().hour
+            }
+        }
+    }
+
+    // Pre-calcular qué horas son laborales para evitar hacerlo dentro del LazyColumn.
+    val workingHourFlags = remember(selectedDate, clinicSettings, hours) {
+        hours.associateWith { hour -> clinicSettings.isWorkingHour(selectedDate, hour) }
+    }
+
+    // ── Scroll automático a la hora actual ──
+
     val listState = rememberLazyListState()
 
-    // MEJORA 1: AUTO-SCROLL A LA HORA ACTUAL (reactivo a cambios de fecha)
-    LaunchedEffect(selectedDate) {  // Se ejecuta cuando cambia selectedDate
-        val calendar = Calendar.getInstance().apply { timeInMillis = selectedDate }
-        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+    LaunchedEffect(selectedDate) {
+        val selectedHour = Instant.ofEpochMilli(selectedDate)
+            .atZone(zoneId)
+            .hour
 
-        if (currentHour in startVisualHour..endVisualHour) {
-            val index = currentHour - startVisualHour
-            // Le restamos 1 al index (si se puede) para que la hora actual
-            // no quede pegada al techo de la pantalla y se vea un poquito de la hora anterior.
-            val targetIndex = if (index > 0) index - 1 else 0
-            listState.scrollToItem(targetIndex)
+        if (selectedHour in startVisualHour..endVisualHour) {
+            val index = (selectedHour - startVisualHour).coerceAtLeast(0)
+            listState.scrollToItem(index)
         }
     }
 
-    // Calcular el espaciado inferior para que el contenido no quede tapado
-    // por la FloatingNavBar + barra de navegación del sistema
-    val density = LocalDensity.current
-    val systemNavBarHeight = with(density) {
+    // ── Padding inferior para no quedar tapado por la FloatingNavBar ──
+
+    val bottomPadding = with(LocalDensity.current) {
         WindowInsets.navigationBars.getBottom(this).toDp()
-    }
-    // FloatingNavBar: ~61dp (45dp items + 16dp padding interno) + 16dp padding externo + barra del sistema
-    val bottomPadding = systemNavBarHeight + 90.dp
+    } + NAV_BAR_OFFSET
+
+    // ── Lista ──
 
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = bottomPadding)
     ) {
-        items(hours.size) { index ->
-            val hour = hours[index]
-
-            // MEJORA 3: Detectar si es la hora actual para mostrar indicador visual
-            val isCurrentHour = hour == Calendar.getInstance()
-                .get(Calendar.HOUR_OF_DAY)
-
-            // Usar las citas pre-agrupadas para mejor performance
-            val appointmentsInThisHour = appointmentsByHour[hour] ?: emptyList()
-
+        items(items = hours, key = { it }) { hour ->
             TimeSlot(
                 hour = hour,
-                // AHORA USAMOS LA CONFIGURACIÓN DINÁMICA DE FIREBASE
-                isWorkingHour = clinicSettings.isWorkingHour(selectedDate, hour),
-                appointments = appointmentsInThisHour,
-                isCurrentHour = isCurrentHour,  // MEJORA 3: Pasar indicador
+                isWorkingHour = workingHourFlags[hour] ?: false,
+                appointments = appointmentsByHour[hour] ?: emptyList(),
+                isCurrentHour = hour == currentSystemHour,
                 onAppointmentClick = onAppointmentClick,
-                onSlotClick = { clickedHour -> onAddAtHourClick(clickedHour) }
+                onSlotClick = { onAddAtHourClick(hour) }
             )
         }
     }
