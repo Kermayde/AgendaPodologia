@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flores.agendapodologia.model.Appointment
+import com.flores.agendapodologia.ui.theme.AppTheme
 import java.util.*
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -33,16 +34,13 @@ fun TimeSlot(
         modifier = Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min) // Altura dinámica según contenido
-            // MEJORA 3: Resaltar la hora actual con fondo azul claro
-//            .background(
-//                if (isCurrentHour) Color(0xFFE3F2FD).copy(alpha = 0.5f)
-//                else Color.Transparent
-//            )
     ) {
-        // COLUMNA 1: La Hora (ej: 10:00)
+        // COLUMNA 1: La Hora (ej: 10:00) — también clickeable para agendar rápido
         Column(
             modifier = Modifier
                 .width(60.dp)
+                .fillMaxHeight()
+                .clickable { onSlotClick(hour) }
                 .padding(8.dp),
             horizontalAlignment = Alignment.End
         ) {
@@ -70,9 +68,10 @@ fun TimeSlot(
         val hasBlockout = appointments.any { it.isBlockout }
 
         // Definir el color de fondo según el estado de la hora
+        val colors = AppTheme.colors
         val backgroundColor = when {
             !isWorkingHour -> MaterialTheme.colorScheme.surfaceVariant  // Gris: fuera de horario laboral
-            hasBlockout -> Color(0xFFFFC107).copy(alpha = 0.2f)  // Amber claro: hora bloqueada
+            hasBlockout -> colors.onWarningContainer  // Amber: hora bloqueada
             else -> MaterialTheme.colorScheme.surface  // Blanco/surface: hora libre/disponible o con citas sin bloqueo
         }
 
@@ -175,9 +174,9 @@ fun TimeSlot(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "🚫 Horario Bloqueado",
+                                "Horario Bloqueado",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFFFA500)
+                                color = colors.onWarningContainer.copy(alpha = 0.5f)
                             )
                         }
                     } else {

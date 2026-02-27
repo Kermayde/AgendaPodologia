@@ -1,14 +1,17 @@
 package com.flores.agendapodologia.ui.screens
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.PaddingValues
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.ClinicSettings
 import com.flores.agendapodologia.ui.components.TimeSlot
@@ -63,9 +66,19 @@ fun TimelineScreen(
         }
     }
 
+    // Calcular el espaciado inferior para que el contenido no quede tapado
+    // por la FloatingNavBar + barra de navegación del sistema
+    val density = LocalDensity.current
+    val systemNavBarHeight = with(density) {
+        WindowInsets.navigationBars.getBottom(this).toDp()
+    }
+    // FloatingNavBar: ~61dp (45dp items + 16dp padding interno) + 16dp padding externo + barra del sistema
+    val bottomPadding = systemNavBarHeight + 90.dp
+
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = bottomPadding)
     ) {
         items(hours.size) { index ->
             val hour = hours[index]
