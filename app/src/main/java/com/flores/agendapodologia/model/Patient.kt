@@ -18,5 +18,6 @@ data class Patient(
     val phone: String = "",
     val status: PatientStatus = PatientStatus.ACTIVE,
     val reminderPreference: ReminderPreference = ReminderPreference.WHATSAPP,
-    val lastVisit: Long = System.currentTimeMillis()
+    val lastVisit: Long = System.currentTimeMillis(),
+    val blockReason: String = "" // Motivo por el cual el paciente está en lista negra
 )

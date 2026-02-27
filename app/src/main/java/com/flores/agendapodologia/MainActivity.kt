@@ -6,11 +6,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
@@ -32,6 +37,7 @@ import com.flores.agendapodologia.ui.screens.RemindersScreen
 import com.flores.agendapodologia.ui.screens.SettingsScreen
 import com.flores.agendapodologia.ui.theme.AgendaPodologiaTheme
 import com.flores.agendapodologia.viewmodel.HomeViewModel
+import com.flores.agendapodologia.viewmodel.UiEvent
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 
@@ -64,11 +70,31 @@ class MainActivity : ComponentActivity() {
             val pendingRemindersCount by viewModel.pendingRemindersCount.collectAsState()
 
             AgendaPodologiaTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surfaceContainer
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
+                val snackbarHostState = remember { SnackbarHostState() }
+
+                // Observar eventos UI globales (éxito / error)
+                LaunchedEffect(Unit) {
+                    viewModel.uiEvent.collect { event ->
+                        val message = when (event) {
+                            is UiEvent.ShowSuccess -> event.message
+                            is UiEvent.ShowError -> event.message
+                        }
+                        snackbarHostState.showSnackbar(
+                            message = message,
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
+
+                Scaffold(
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ) { scaffoldPadding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(scaffoldPadding)
+                    ) {
                         NavHost(navController = navController, startDestination = AppScreens.Home.route) {
 
                             // 1. HOME
@@ -101,7 +127,10 @@ class MainActivity : ComponentActivity() {
 
                                 PatientDetailScreen(
                                     viewModel = viewModel,
-                                    onBack = { navController.popBackStack() }
+                                    onBack = { navController.popBackStack() },
+                                    onAppointmentClick = { appointment ->
+                                        navController.navigate(AppScreens.AppointmentDetail.createRoute(appointment.id))
+                                    }
                                 )
                             }
 

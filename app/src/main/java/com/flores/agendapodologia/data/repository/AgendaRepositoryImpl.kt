@@ -173,6 +173,30 @@ class AgendaRepositoryImpl(
         }
     }
 
+    override suspend fun getUpcomingAppointments(patientId: String): List<Appointment> {
+        return try {
+            val now = Date()
+            val snapshot = db.collection("appointments")
+                .whereEqualTo("patientId", patientId)
+                .whereGreaterThanOrEqualTo("date", now)
+                .orderBy("date", Query.Direction.ASCENDING)
+                .limit(10)
+                .get()
+                .await()
+
+            if (!snapshot.isEmpty) {
+                // Filtramos en memoria para evitar necesitar un índice compuesto extra
+                snapshot.toObjects(Appointment::class.java)
+                    .filter { it.status == AppointmentStatus.PENDIENTE }
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
     override suspend fun updateAppointmentNotes(appointmentId: String, notes: String): Result<Boolean> {
         return try {
             db.collection("appointments").document(appointmentId)
@@ -203,6 +227,18 @@ class AgendaRepositoryImpl(
     override suspend fun updatePatientStatus(patientId: String, status: PatientStatus): Result<Boolean> {
         return try {
             db.collection("patients").document(patientId).update("status", status).await()
+            Result.success(true)
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    override suspend fun updatePatientStatusWithReason(patientId: String, status: PatientStatus, blockReason: String): Result<Boolean> {
+        return try {
+            db.collection("patients").document(patientId).update(
+                mapOf(
+                    "status" to status,
+                    "blockReason" to blockReason
+                )
+            ).await()
             Result.success(true)
         } catch (e: Exception) { Result.failure(e) }
     }

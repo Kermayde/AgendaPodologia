@@ -17,11 +17,13 @@ interface AgendaRepository {
     suspend fun scheduleAppointment(appointment: Appointment, patient: Patient): Result<Boolean>
     fun getAppointmentsForDate(date: Long): Flow<List<Appointment>>
     suspend fun getLastAppointments(patientId: String, currentAppointmentDate: Date): List<Appointment>
+    suspend fun getUpcomingAppointments(patientId: String): List<Appointment>
     suspend fun updateAppointmentNotes(appointmentId: String, notes: String): Result<Boolean>
     suspend fun getAppointmentById(id: String): Appointment?
     suspend fun getPatientById(id: String): Patient?
     suspend fun deletePatientAndAppointments(patientId: String): Result<Boolean>
     suspend fun updatePatientStatus(patientId: String, status: PatientStatus): Result<Boolean>
+    suspend fun updatePatientStatusWithReason(patientId: String, status: PatientStatus, blockReason: String): Result<Boolean>
     suspend fun updatePatientAndHistory(patient: Patient): Result<Boolean>
     suspend fun getLastPaidWarrantyAppointment(patientId: String): Appointment?
     suspend fun finishAppointment(appointmentId: String, isPaid: Boolean, paymentMethod: PaymentMethod, amountCharged: Double, usedWarranty: Boolean = false): Result<Boolean>
