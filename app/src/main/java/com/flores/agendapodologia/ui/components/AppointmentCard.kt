@@ -54,8 +54,11 @@ fun AppointmentCard(
     // Estilo condicional
     val isBlockout = appointment.isBlockout  // ← NUEVO
     val isFinished = appointment.status == AppointmentStatus.FINALIZADA && !isBlockout  // No aplica para bloqueos
-    val cardAlpha = if (isFinished) 0.6f else 1f // Más transparente si terminó
-    val textDecoration = if (isFinished) TextDecoration.LineThrough else null
+    val isCancelled = appointment.status == AppointmentStatus.CANCELADA && !isBlockout
+    val isNoShow = appointment.status == AppointmentStatus.NO_ASISTIO && !isBlockout
+    val isDimmed = isFinished || isCancelled || isNoShow  // Cualquiera de estos se atenúa
+    val cardAlpha = if (isDimmed) 0.6f else 1f // Más transparente si terminó/canceló/no asistió
+    val textDecoration = if (isDimmed) TextDecoration.LineThrough else null
 
     // Color distintivo según si es bloqueo o normal
     val (containerColor, borderColor) = when {
@@ -64,12 +67,12 @@ fun AppointmentCard(
         }
         isOutsideWorkingHours -> {
             // Fuera de horario: fondo con tinte gris-azulado y borde punteado azul-gris
-            val bgColor = if (isFinished) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            val bgColor = if (isDimmed) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                           else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
             Pair(bgColor, BorderStroke(3.dp, MaterialTheme.colorScheme.surfaceVariant))
         }
         else -> {
-            val bgColor = if (isFinished) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+            val bgColor = if (isDimmed) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                             else MaterialTheme.colorScheme.surface
             Pair(bgColor, null)  // Color normal para citas
         }
@@ -91,33 +94,18 @@ fun AppointmentCard(
         ) {
             // Si es bloqueo, mostrar diferente (sin hora, con icono)
             if (isBlockout) {
-                // BLOQUEO: Mostrar nombre e icono
-//                Column(modifier = Modifier.weight(1f)) {
-//                    Text(
-//                        text = "🚫 ${appointment.patientName}",
-//                        style = MaterialTheme.typography.titleMedium,
-//                        fontWeight = FontWeight.Bold,
-//                        color = Color(0xFFFFA500)
-//                    )
-//                    Text(
-//                        text = appointment.serviceType,
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        color = Color(0xFFFFA500)
-//                    )
-//                }
-                // COLUMNA 1: HORA
+                // BLOQUEO
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(start = 9.dp, end = 16.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Block,
                         contentDescription = "Bloqueo",
                         tint = colors.onWarningContainer,
-                        modifier = Modifier.size(30.dp)
+                        modifier = Modifier.size(40.dp)
                     )
                 }
-
                 // Separador vertical
                 VerticalDivider(
                     modifier = Modifier
@@ -135,24 +123,6 @@ fun AppointmentCard(
                         style = MaterialTheme.typography.titleMedium,
                         color = colors.onWarningContainer,
                         fontWeight = FontWeight.Bold,
-                    )
-                }
-
-                // COLUMNA 3: PODÓLOGO (Badge)
-                val podiatristColor = if (appointment.podiatristName == "Carlos")
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.tertiaryContainer
-
-                Surface(
-                    color = podiatristColor,
-                    shape = CircleShape,
-                ) {
-                    Text(
-                        text = appointment.podiatristName.firstOrNull()?.toString() ?: "?", // Inicial "C" o "K" o "?"
-                        modifier = Modifier.padding(8.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
                     )
                 }
             } else {
@@ -178,9 +148,8 @@ fun AppointmentCard(
                 // Separador vertical
                 VerticalDivider(
                     modifier = Modifier
-                        .height(40.dp)
-                        .width(1.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
+                        .height(40.dp),
+                    color = if (!isDimmed) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -197,34 +166,27 @@ fun AppointmentCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = appointment.serviceType,
+                            text = when {
+                                isCancelled -> "Cancelada"
+                                isNoShow -> "No Asistió"
+                                else -> appointment.serviceType
+                            },
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = when {
+                                isCancelled || isNoShow -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        if (!isFinished) {
+                        if (!isDimmed) {
                             if (isOutsideWorkingHours) {
                                 AlertBadge()
-                            } else if (appointment.status == AppointmentStatus.PENDIENTE) {
-                                PendingBadge()
+                            } else if (!appointment.isReminderSent) {
+                                UnconfirmBadge()
                             }
                         }
-                    }
-
-                    // Indicador si esta cita usó garantía (badge verde)
-                    if (appointment.usedWarranty) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Surface(
-                            color = Color(0xFFE8F5E9),
-                            shape = RoundedCornerShape(8.dp),
-                            tonalElevation = 0.dp
-                        ) {
-                            Text(
-                                text = "POR GARANTÍA",
-                                color = Color(0xFF2E7D32),
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                        else if (appointment.usedWarranty) {
+                            WarrantyBadge()
                         }
                     }
                 }
@@ -256,7 +218,7 @@ fun AppointmentCard(
  * Punto ámbar pulsante + texto.
  */
 @Composable
-private fun PendingBadge() {
+private fun UnconfirmBadge() {
     val colors = AppTheme.colors
     val infiniteTransition = rememberInfiniteTransition(label = "pending_pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
@@ -271,12 +233,12 @@ private fun PendingBadge() {
 
     Surface(
         color = colors.warningContainer,
-        shape = RoundedCornerShape(10.dp),
+        shape = CircleShape,
         tonalElevation = 0.dp
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
         ) {
             // Punto pulsante
             Box(
@@ -297,10 +259,6 @@ private fun PendingBadge() {
     }
 }
 
-/**
- * Badge animado para citas no confirmadas (PENDIENTE).
- * Punto ámbar pulsante + texto.
- */
 @Composable
 private fun AlertBadge() {
     val colors = AppTheme.colors
@@ -317,12 +275,12 @@ private fun AlertBadge() {
 
     Surface(
         color = colors.errorSoftContainer,
-        shape = RoundedCornerShape(10.dp),
+        shape = CircleShape,
         tonalElevation = 0.dp
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
         ) {
             // Punto pulsante
             Box(
@@ -334,8 +292,38 @@ private fun AlertBadge() {
             )
             Spacer(modifier = Modifier.width(5.dp))
             Text(
-                text = "FUERA DE HORARIO",
+                text = "INTEMPESTIVO",
                 color = colors.onErrorSoftContainer,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+@Composable
+private fun WarrantyBadge() {
+    val colors = AppTheme.colors
+
+    Surface(
+        color = colors.successContainer,
+        shape = CircleShape,
+        tonalElevation = 0.dp
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+        ) {
+            // Punto pulsante
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(colors.success)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = "GARANTÍA",
+                color = colors.onSuccessContainer,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium
             )
