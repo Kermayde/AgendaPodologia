@@ -7,13 +7,13 @@ plugins {
 android {
     namespace = "com.flores.agendapodologia"
     compileSdk {
-        version = release(34)
+        version = release(36)
     }
 
     defaultConfig {
         applicationId = "com.flores.agendapodologia"
         minSdk = 34
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "0.8"
 
