@@ -50,6 +50,7 @@ import com.flores.agendapodologia.ui.screens.PatientDetailScreen
 import com.flores.agendapodologia.ui.screens.PatientDirectoryScreen
 import com.flores.agendapodologia.ui.screens.RemindersScreen
 import com.flores.agendapodologia.ui.screens.SettingsScreen
+import com.flores.agendapodologia.ui.screens.ScheduleScreen
 import com.flores.agendapodologia.ui.theme.AgendaPodologiaTheme
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import com.flores.agendapodologia.viewmodel.UiEvent
@@ -183,6 +184,17 @@ class MainActivity : ComponentActivity() {
                             // 6. CONFIGURACIÓN
                             composable(AppScreens.Settings.route) {
                                 SettingsScreen(
+                                    viewModel = viewModel,
+                                    onBack = { navController.popBackStack() },
+                                    onNavigateToSchedule = {
+                                        navController.navigate(AppScreens.Schedule.route)
+                                    }
+                                )
+                            }
+
+                            // 6b. CONFIGURACIÓN DE HORARIOS
+                            composable(AppScreens.Schedule.route) {
+                                ScheduleScreen(
                                     viewModel = viewModel,
                                     onBack = { navController.popBackStack() }
                                 )

@@ -1,51 +1,41 @@
 package com.flores.agendapodologia.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Login
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.flores.agendapodologia.model.DaySchedule
 import com.flores.agendapodologia.viewmodel.HomeViewModel
-import java.util.Locale
-import androidx.compose.ui.platform.LocalLocale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: HomeViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToSchedule: () -> Unit = {}
 ) {
-    val currentSettings by viewModel.clinicSettings.collectAsState()
-
     // ── Padding inferior para no quedar tapado por la FloatingNavBar ──
-
     val bottomPadding = with(LocalDensity.current) {
         WindowInsets.navigationBars.getBottom(this).toDp()
     } + NAV_BAR_OFFSET
-
-    // Estado local para editar antes de guardar
-    var editedSettings by remember { mutableStateOf(currentSettings) }
-    // Bandera para saber si el usuario ha hecho cambios
-    var hasChanges by remember { mutableStateOf(false) }
-
-    // Solo sincronizar cuando los cambios llegan de Firebase pero el usuario no ha editado nada
-    LaunchedEffect(currentSettings) {
-        if (!hasChanges) {
-            editedSettings = currentSettings
-        }
-    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -53,23 +43,13 @@ fun SettingsScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
-                title = { Text("Configuración de Horarios") },
+                title = { Text("Configuración") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                 ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        viewModel.updateSettings(editedSettings) {
-                            hasChanges = false
-                            onBack()
-                        }
-                    }) {
-                        Icon(Icons.Default.Check, "Guardar", tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             )
@@ -78,151 +58,175 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                text = "Configura los días y turnos de atención. Los cambios se reflejarán inmediatamente en la agenda.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
-                modifier = Modifier.padding(vertical = 8.dp)
+            // ═══════════════════════════════════════════════════
+            //  SECCIÓN: General
+            // ═══════════════════════════════════════════════════
+            SettingsSectionHeader(title = "General")
+
+            // Configuración de Horarios (funcional)
+            SettingsItem(
+                icon = Icons.Default.CalendarMonth,
+                title = "Horarios de atención",
+                subtitle = "Configura días y turnos de atención",
+                onClick = onNavigateToSchedule
             )
 
-            // LUNES
-            DayScheduleEditor(dayName = "Lunes", schedule = editedSettings.monday) { newSched ->
-                editedSettings = editedSettings.copy(monday = newSched)
-                hasChanges = true
-            }
-            // MARTES
-            DayScheduleEditor(dayName = "Martes", schedule = editedSettings.tuesday) { newSched ->
-                editedSettings = editedSettings.copy(tuesday = newSched)
-                hasChanges = true
-            }
-            // MIÉRCOLES
-            DayScheduleEditor(dayName = "Miércoles", schedule = editedSettings.wednesday) { newSched ->
-                editedSettings = editedSettings.copy(wednesday = newSched)
-                hasChanges = true
-            }
-            // JUEVES
-            DayScheduleEditor(dayName = "Jueves", schedule = editedSettings.thursday) { newSched ->
-                editedSettings = editedSettings.copy(thursday = newSched)
-                hasChanges = true
-            }
-            // VIERNES
-            DayScheduleEditor(dayName = "Viernes", schedule = editedSettings.friday) { newSched ->
-                editedSettings = editedSettings.copy(friday = newSched)
-                hasChanges = true
-            }
-            // SÁBADO
-            DayScheduleEditor(dayName = "Sábado", schedule = editedSettings.saturday) { newSched ->
-                editedSettings = editedSettings.copy(saturday = newSched)
-                hasChanges = true
-            }
-            // DOMINGO
-            DayScheduleEditor(dayName = "Domingo", schedule = editedSettings.sunday) { newSched ->
-                editedSettings = editedSettings.copy(sunday = newSched)
-                hasChanges = true
-            }
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            // Formato de hora (placeholder)
+            SettingsItem(
+                icon = Icons.Default.AccessTime,
+                title = "Formato de hora",
+                subtitle = "24 horas",
+                onClick = { /* TODO: Implementar selector de formato de hora */ },
+                enabled = false
+            )
+
+            // ═══════════════════════════════════════════════════
+            //  SECCIÓN: Apariencia
+            // ═══════════════════════════════════════════════════
+            SettingsSectionHeader(title = "Apariencia")
+
+            // Tema de la app (placeholder)
+            SettingsItem(
+                icon = Icons.Default.DarkMode,
+                title = "Tema",
+                subtitle = "Seguir ajustes del sistema",
+                onClick = { /* TODO: Implementar selector de tema */ },
+                enabled = false
+            )
+
+            // ═══════════════════════════════════════════════════
+            //  SECCIÓN: Cuenta
+            // ═══════════════════════════════════════════════════
+            SettingsSectionHeader(title = "Cuenta")
+
+            // Inicio de sesión (placeholder)
+            SettingsItem(
+                icon = Icons.Default.Login,
+                title = "Iniciar sesión",
+                subtitle = "No has iniciado sesión",
+                onClick = { /* TODO: Implementar inicio de sesión */ },
+                enabled = false
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            // Cerrar sesión (placeholder)
+            SettingsItem(
+                icon = Icons.AutoMirrored.Filled.Logout,
+                title = "Cerrar sesión",
+                subtitle = null,
+                onClick = { /* TODO: Implementar cierre de sesión */ },
+                enabled = false,
+                tint = MaterialTheme.colorScheme.error
+            )
+
+            // ═══════════════════════════════════════════════════
+            //  SECCIÓN: Acerca de
+            // ═══════════════════════════════════════════════════
+            SettingsSectionHeader(title = "Acerca de")
+
+            SettingsItem(
+                icon = Icons.Default.Info,
+                title = "Versión de la app",
+                subtitle = "0.8",
+                onClick = {},
+                showChevron = false
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Pie de página
+            Text(
+                text = "Agenda Podología © 2026",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
 
             Spacer(modifier = Modifier.height(bottomPadding))
         }
     }
 }
 
-// --- SUBCOMPONENTES DE LA INTERFAZ ---
+// ═══════════════════════════════════════════════════════════════
+//  Componentes reutilizables para la pantalla de configuración
+// ═══════════════════════════════════════════════════════════════
 
 @Composable
-fun DayScheduleEditor(
-    dayName: String,
-    schedule: DaySchedule,
-    onScheduleChange: (DaySchedule) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (schedule.isOpen) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Encabezado del Día (Lunes, Martes...) y Switch de Abierto/Cerrado
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = dayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (schedule.isOpen) MaterialTheme.colorScheme.onSurface else Color.Gray
-                )
-                Switch(
-                    checked = schedule.isOpen,
-                    onCheckedChange = { onScheduleChange(schedule.copy(isOpen = it)) }
-                )
-            }
-
-            // Si está abierto, mostramos los controles de horas
-            if (schedule.isOpen) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                // TURNO 1 (Mañana)
-                Text("Turno 1 (Mañana)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                HourStepperRow("Apertura", schedule.shift1Start) { onScheduleChange(schedule.copy(shift1Start = it)) }
-                HourStepperRow("Cierre", schedule.shift1End) { onScheduleChange(schedule.copy(shift1End = it)) }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // TURNO 2 (Tarde)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Turno 2 (Tarde)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                    Checkbox(
-                        checked = schedule.hasShift2,
-                        onCheckedChange = { onScheduleChange(schedule.copy(hasShift2 = it)) }
-                    )
-                }
-
-                if (schedule.hasShift2) {
-                    HourStepperRow("Reapertura", schedule.shift2Start) { onScheduleChange(schedule.copy(shift2Start = it)) }
-                    HourStepperRow("Cierre Final", schedule.shift2End) { onScheduleChange(schedule.copy(shift2End = it)) }
-                }
-            } else {
-                Text("Día de descanso", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
-        }
-    }
+private fun SettingsSectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
+    )
 }
 
-// Componente de botones [ - ] 10:00 [ + ]
 @Composable
-fun HourStepperRow(label: String, currentHour: Int, onHourChange: (Int) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(
-                onClick = { if (currentHour > 0) onHourChange(currentHour - 1) },
-                modifier = Modifier.size(32.dp)
-            ) { Icon(Icons.Default.Delete, "Menos") }
+private fun SettingsItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String?,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    showChevron: Boolean = true,
+    tint: Color = MaterialTheme.colorScheme.onSurface
+) {
+    val alpha = if (enabled) 1f else 0.5f
 
-            Text(
-                text = String.format(LocalLocale.current.platformLocale, "%02d:00", currentHour),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick),
+        color = Color.Transparent
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint.copy(alpha = alpha),
+                modifier = Modifier.size(24.dp)
             )
 
-            IconButton(
-                onClick = { if (currentHour < 23) onHourChange(currentHour + 1) },
-                modifier = Modifier.size(32.dp)
-            ) { Icon(Icons.Default.Add, "Más") }
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = tint.copy(alpha = alpha)
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray.copy(alpha = alpha)
+                    )
+                }
+            }
+
+            if (showChevron && enabled) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
