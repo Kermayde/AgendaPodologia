@@ -43,9 +43,10 @@ fun DatePickerModal(
 @Composable
 fun TimePickerModal(
     onTimeSelected: (Int, Int) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    is24Hour: Boolean = true
 ) {
-    val timePickerState = rememberTimePickerState()
+    val timePickerState = rememberTimePickerState(is24Hour = is24Hour)
 
     AlertDialog(
         onDismissRequest = onDismiss,

@@ -27,10 +27,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.model.AppointmentStatus
 import com.flores.agendapodologia.ui.theme.AppTheme
-import java.text.SimpleDateFormat
+import com.flores.agendapodologia.ui.theme.LocalUse12HourFormat
+import com.flores.agendapodologia.util.TimeFormatUtils
 
 // ─────────────────────────────────────────────────────────────────
 //  AppointmentCard — tarjeta principal de cita en la agenda
@@ -60,6 +62,7 @@ fun AppointmentCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(shape)
             .clickable(onClick = onClick),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor),
@@ -95,7 +98,9 @@ private fun RowScope.BlockoutCardContent() {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(start = 9.dp, end = 16.dp)
+        modifier = Modifier.padding(end = 8.dp).widthIn( min = 57.dp )
+            //.widthIn( min = 65.dp )
+            //.padding(start = 9.dp, end = 16.dp)
     ) {
         Icon(
             imageVector = Icons.Default.Block,
@@ -129,11 +134,13 @@ private fun RowScope.AppointmentCardContent(
     isDimmed: Boolean,
     isOutsideWorkingHours: Boolean
 ) {
-    val timeString = rememberFormattedTime(appointment)
+    val use12Hour = LocalUse12HourFormat.current
+    val timeString = rememberFormattedTime(appointment, use12Hour)
+    val amPm = if (use12Hour) TimeFormatUtils.getAmPm(appointment.date) else null
     val isCancelled = appointment.status == AppointmentStatus.CANCELADA
     val isNoShow = appointment.status == AppointmentStatus.NO_ASISTIO
 
-    TimeColumn(timeString)
+    TimeColumn(timeString, amPm, use12Hour)
     CardDivider(isDimmed)
     Spacer(modifier = Modifier.width(8.dp))
 
@@ -169,12 +176,13 @@ private fun RowScope.AppointmentCardContent(
 //  Subcomponentes atómicos
 // ─────────────────────────────────────────────────────────────────
 
-/** Columna con la hora y AM/PM. */
+/** Columna con la hora y AM/PM (solo en formato 12h). */
 @Composable
-private fun TimeColumn(timeString: String) {
+private fun TimeColumn(timeString: String, amPm: String?, use12Hour: Boolean) {
+    val colors = AppTheme.colors
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(end = 8.dp)
+        modifier = Modifier.padding(end = 8.dp).widthIn( min = 57.dp )
     ) {
         Text(
             text = timeString,
@@ -182,11 +190,13 @@ private fun TimeColumn(timeString: String) {
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
-        Text(
-            text = if (timeString.substringBefore(":").toInt() < 12) "AM" else "PM",
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray
-        )
+        if (use12Hour && amPm != null) {
+            Text(
+                text = amPm,
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceSubtle
+            )
+        }
     }
 }
 
@@ -358,12 +368,12 @@ private fun resolveCardColors(
     }
 }
 
-/** Formatea la hora de la cita usando el locale del dispositivo. */
+/** Formatea la hora de la cita según la preferencia de formato 12h/24h. */
 @Composable
-private fun rememberFormattedTime(appointment: Appointment): String {
+private fun rememberFormattedTime(appointment: Appointment, use12Hour: Boolean): String {
     val configuration = LocalConfiguration.current
-    val formatter = remember(configuration) {
-        SimpleDateFormat("HH:mm", configuration.locales[0])
+    val locale = configuration.locales[0]
+    return remember(appointment.date, use12Hour, locale) {
+        TimeFormatUtils.formatTime(appointment.date, use12Hour, locale)
     }
-    return formatter.format(appointment.date)
 }

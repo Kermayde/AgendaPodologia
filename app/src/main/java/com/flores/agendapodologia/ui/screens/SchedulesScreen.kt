@@ -17,9 +17,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.DaySchedule
+import com.flores.agendapodologia.ui.theme.LocalUse12HourFormat
+import com.flores.agendapodologia.util.TimeFormatUtils
 import com.flores.agendapodologia.viewmodel.HomeViewModel
-import java.util.Locale
-import androidx.compose.ui.platform.LocalLocale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,6 +200,8 @@ fun DayScheduleEditor(
 // Componente de botones [ - ] 10:00 [ + ]
 @Composable
 fun HourStepperRow(label: String, currentHour: Int, onHourChange: (Int) -> Unit) {
+    val use12Hour = LocalUse12HourFormat.current
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -213,7 +215,7 @@ fun HourStepperRow(label: String, currentHour: Int, onHourChange: (Int) -> Unit)
             ) { Icon(Icons.Default.Delete, "Menos") }
 
             Text(
-                text = String.format(LocalLocale.current.platformLocale, "%02d:00", currentHour),
+                text = TimeFormatUtils.formatHour(currentHour, use12Hour),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 8.dp)

@@ -39,6 +39,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.runtime.CompositionLocalProvider
+import com.flores.agendapodologia.data.UserPreferences
 import com.flores.agendapodologia.data.repository.AgendaRepositoryImpl
 import com.flores.agendapodologia.ui.components.FloatingNavBar
 import com.flores.agendapodologia.ui.navigation.AppScreens
@@ -48,6 +50,7 @@ import com.flores.agendapodologia.ui.screens.CashRegisterScreen
 import com.flores.agendapodologia.ui.screens.HomeScreen
 import com.flores.agendapodologia.ui.screens.PatientDetailScreen
 import com.flores.agendapodologia.ui.screens.PatientDirectoryScreen
+import com.flores.agendapodologia.ui.theme.LocalUse12HourFormat
 import com.flores.agendapodologia.ui.screens.RemindersScreen
 import com.flores.agendapodologia.ui.screens.SettingsScreen
 import com.flores.agendapodologia.ui.screens.ScheduleScreen
@@ -68,8 +71,10 @@ class MainActivity : ComponentActivity() {
         val db = Firebase.firestore
         val repository = AgendaRepositoryImpl(db)
         val viewModel = HomeViewModel(repository)
+        val userPreferences = UserPreferences.getInstance(this)
 
         setContent {
+            val use12Hour by userPreferences.use12HourFormat.collectAsState()
             val navController = rememberNavController()
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
@@ -85,6 +90,7 @@ class MainActivity : ComponentActivity() {
 
             val pendingRemindersCount by viewModel.pendingRemindersCount.collectAsState()
 
+            CompositionLocalProvider(LocalUse12HourFormat provides use12Hour) {
             AgendaPodologiaTheme {
                 val snackbarHostState = remember { SnackbarHostState() }
                 var isErrorSnackbar by remember { mutableStateOf(false) }
@@ -185,6 +191,7 @@ class MainActivity : ComponentActivity() {
                             composable(AppScreens.Settings.route) {
                                 SettingsScreen(
                                     viewModel = viewModel,
+                                    userPreferences = userPreferences,
                                     onBack = { navController.popBackStack() },
                                     onNavigateToSchedule = {
                                         navController.navigate(AppScreens.Schedule.route)
@@ -301,6 +308,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+            } // CompositionLocalProvider
         }
     }
 }

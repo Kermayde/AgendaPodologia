@@ -21,6 +21,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flores.agendapodologia.model.ReminderPreference
+import com.flores.agendapodologia.ui.theme.LocalUse12HourFormat
+import com.flores.agendapodologia.util.TimeFormatUtils
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import com.flores.agendapodologia.viewmodel.PendingReminder
 import java.net.URLEncoder
@@ -92,14 +94,15 @@ fun RemindersScreen(
                 contentPadding = PaddingValues(bottom = bottomPadding, start = 16.dp, end = 16.dp, top = 16.dp)
             ) {
                 items(reminders, key = { it.appointment.id }) { reminder ->
+                    val use12Hour = LocalUse12HourFormat.current
                     ReminderCard(
                         reminder = reminder,
+                        use12Hour = use12Hour,
                         onSendReminder = {
                             when (reminder.reminderPreference) {
                                 ReminderPreference.WHATSAPP -> {
                                     val phone = formatPhoneForWhatsapp(reminder.patientPhone)
-                                    val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
-                                    val timeStr = timeFormat.format(reminder.appointment.date)
+                                    val timeStr = TimeFormatUtils.formatTimeFull(reminder.appointment.date, use12Hour)
                                     val message = URLEncoder.encode(
                                         "Hola ${reminder.patientName}, nos comunicamos de Salud Integral para Tus Pies, " +
                                                 "para recordarte de tu cita de ${reminder.appointment.serviceType} " +
@@ -143,11 +146,11 @@ fun RemindersScreen(
 @Composable
 private fun ReminderCard(
     reminder: PendingReminder,
+    use12Hour: Boolean,
     onSendReminder: () -> Unit,
     onMarkSent: () -> Unit
 ) {
-    val timeFormat = SimpleDateFormat("hh:mm a", LocalLocale.current.platformLocale)
-    val timeStr = timeFormat.format(reminder.appointment.date)
+    val timeStr = TimeFormatUtils.formatTimeFull(reminder.appointment.date, use12Hour)
 
     Card(
         modifier = Modifier.fillMaxWidth(),

@@ -35,6 +35,7 @@ import com.flores.agendapodologia.model.AppointmentStatus
 import com.flores.agendapodologia.model.PatientStatus
 import com.flores.agendapodologia.model.ReminderPreference
 import com.flores.agendapodologia.ui.components.ReminderPreferenceSelector
+import com.flores.agendapodologia.ui.theme.LocalUse12HourFormat
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
@@ -52,8 +53,12 @@ fun PatientDetailScreen(
     val upcomingAppointments by viewModel.upcomingAppointments.collectAsState()
     val context = LocalContext.current
 
-    // Formateador de fecha
-    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+    // Formateador de fecha con hora según preferencia
+    val use12Hour = LocalUse12HourFormat.current
+    val dateFormat = remember(use12Hour) {
+        val pattern = if (use12Hour) "dd/MM/yyyy h:mm a" else "dd/MM/yyyy HH:mm"
+        SimpleDateFormat(pattern, Locale.getDefault())
+    }
 
     // Estado para el diálogo de confirmación de borrado
     var showDeleteDialog by remember { mutableStateOf(false) }

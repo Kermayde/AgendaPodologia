@@ -33,7 +33,9 @@ import com.flores.agendapodologia.ui.components.ServiceSelector
 import com.flores.agendapodologia.ui.components.StatusSelector
 import com.flores.agendapodologia.ui.components.TimePickerModal
 import com.flores.agendapodologia.ui.components.WarrantyBanner
+import com.flores.agendapodologia.ui.theme.LocalUse12HourFormat
 import com.flores.agendapodologia.util.ServiceConstants
+import com.flores.agendapodologia.util.TimeFormatUtils
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -90,8 +92,11 @@ fun AppointmentDetailScreen(
     }
 
     // Formateadores de fecha
+    val use12Hour = LocalUse12HourFormat.current
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", LocalLocale.current.platformLocale)
-    val timeFormat = SimpleDateFormat("HH:mm", LocalLocale.current.platformLocale)
+    val timeFormatted: @Composable (Date) -> String = { date ->
+        TimeFormatUtils.formatTimeFull(date, use12Hour, LocalLocale.current.platformLocale)
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -271,7 +276,7 @@ fun AppointmentDetailScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     // Selector HORA
                     OutlinedTextField(
-                        value = timeFormat.format(editDate),
+                        value = timeFormatted(editDate),
                         onValueChange = {},
                         label = { Text("Hora") },
                         readOnly = true,
@@ -614,7 +619,8 @@ fun AppointmentDetailScreen(
                 cal.set(Calendar.MINUTE, minute)
                 editDate = cal.time
             },
-            onDismiss = { showTimePicker = false }
+            onDismiss = { showTimePicker = false },
+            is24Hour = !use12Hour
         )
     }
 }

@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flores.agendapodologia.model.Appointment
 import com.flores.agendapodologia.ui.theme.AppTheme
+import com.flores.agendapodologia.ui.theme.LocalUse12HourFormat
+import com.flores.agendapodologia.util.TimeFormatUtils
 import java.util.Locale
 
 // ─────────────────────────────────────────────────────────────────
@@ -69,13 +71,15 @@ fun TimeSlot(
 //  Subcomponentes
 // ─────────────────────────────────────────────────────────────────
 
-/** Columna izquierda con la hora (ej: 10:00) y opcionalmente "AHORA". */
+/** Columna izquierda con la hora (ej: 10:00 o 10:00 AM) y opcionalmente "AHORA". */
 @Composable
 private fun HourLabel(
     hour: Int,
     isCurrentHour: Boolean,
     onSlotClick: () -> Unit
 ) {
+    val use12Hour = LocalUse12HourFormat.current
+
     Column(
         modifier = Modifier
             .clip(MaterialTheme.shapes.medium)
@@ -86,13 +90,23 @@ private fun HourLabel(
         horizontalAlignment = Alignment.End
     ) {
         Text(
-            text = remember(hour) { String.format(Locale.getDefault(), "%02d:00", hour) },
+            text = remember(hour, use12Hour) { TimeFormatUtils.formatHour(hour, use12Hour) },
             style = MaterialTheme.typography.labelMedium,
             fontSize = 12.sp,
             color = if (isCurrentHour) MaterialTheme.colorScheme.onSurfaceVariant
                     else MaterialTheme.colorScheme.outline,
             fontWeight = if (isCurrentHour) FontWeight.Bold else FontWeight.Normal
         )
+        if (use12Hour) {
+            Text(
+                text = remember(hour) { TimeFormatUtils.getAmPm(hour) },
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 9.sp,
+                color = if (isCurrentHour) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.outline,
+                fontWeight = FontWeight.Normal
+            )
+        }
         if (isCurrentHour) {
             Text(
                 text = "AHORA",

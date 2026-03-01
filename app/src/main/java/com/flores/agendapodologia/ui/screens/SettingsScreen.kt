@@ -23,12 +23,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.flores.agendapodologia.data.UserPreferences
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: HomeViewModel,
+    userPreferences: UserPreferences,
     onBack: () -> Unit,
     onNavigateToSchedule: () -> Unit = {}
 ) {
@@ -76,13 +78,15 @@ fun SettingsScreen(
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-            // Formato de hora (placeholder)
-            SettingsItem(
+            // Formato de hora (funcional con switch)
+            val use12Hour by userPreferences.use12HourFormat.collectAsState()
+
+            SettingsToggleItem(
                 icon = Icons.Default.AccessTime,
-                title = "Formato de hora",
-                subtitle = "24 horas",
-                onClick = { /* TODO: Implementar selector de formato de hora */ },
-                enabled = false
+                title = "Formato de 12 horas",
+                subtitle = if (use12Hour) "Ejemplo: 2:30 PM" else "Ejemplo: 14:30",
+                checked = use12Hour,
+                onCheckedChange = { userPreferences.setUse12HourFormat(it) }
             )
 
             // ═══════════════════════════════════════════════════
@@ -230,3 +234,58 @@ private fun SettingsItem(
         }
     }
 }
+
+/** Item de configuración con un Switch en lugar de chevron. */
+@Composable
+private fun SettingsToggleItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String?,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    tint: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) },
+        color = Color.Transparent
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = tint
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange
+            )
+        }
+    }
+}
+

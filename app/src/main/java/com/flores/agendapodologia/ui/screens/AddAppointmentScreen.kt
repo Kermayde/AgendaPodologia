@@ -26,6 +26,8 @@ import com.flores.agendapodologia.ui.components.PatientAutocomplete
 import com.flores.agendapodologia.ui.components.ReminderPreferenceSelector
 import com.flores.agendapodologia.ui.components.ServiceSelector
 import com.flores.agendapodologia.ui.components.TimePickerModal
+import com.flores.agendapodologia.ui.theme.LocalUse12HourFormat
+import com.flores.agendapodologia.util.TimeFormatUtils
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -291,8 +293,9 @@ fun AddAppointmentScreen(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // Selector de HORA
+                val use12Hour = LocalUse12HourFormat.current
                 OutlinedTextField(
-                    value = String.format("%02d:%02d", selectedHour, selectedMinute),
+                    value = TimeFormatUtils.formatHourMinute(selectedHour, selectedMinute, use12Hour),
                     onValueChange = {},
                     label = { Text("Hora") },
                     readOnly = true,
@@ -390,12 +393,14 @@ fun AddAppointmentScreen(
     }
 
     if (showTimePicker) {
+        val use12HourPicker = LocalUse12HourFormat.current
         TimePickerModal(
             onTimeSelected = { hour, minute ->
                 selectedHour = hour
                 selectedMinute = minute
             },
-            onDismiss = { showTimePicker = false }
+            onDismiss = { showTimePicker = false },
+            is24Hour = !use12HourPicker
         )
     }
 }
