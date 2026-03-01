@@ -99,8 +99,6 @@ private fun RowScope.BlockoutCardContent() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(end = 8.dp).widthIn( min = 57.dp )
-            //.widthIn( min = 65.dp )
-            //.padding(start = 9.dp, end = 16.dp)
     ) {
         Icon(
             imageVector = Icons.Default.Block,

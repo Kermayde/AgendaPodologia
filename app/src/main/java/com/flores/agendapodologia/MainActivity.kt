@@ -39,7 +39,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
+import com.flores.agendapodologia.data.ThemeMode
 import com.flores.agendapodologia.data.UserPreferences
 import com.flores.agendapodologia.data.repository.AgendaRepositoryImpl
 import com.flores.agendapodologia.ui.components.FloatingNavBar
@@ -75,6 +77,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val use12Hour by userPreferences.use12HourFormat.collectAsState()
+            val themeMode by userPreferences.themeMode.collectAsState()
             val navController = rememberNavController()
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
@@ -90,8 +93,15 @@ class MainActivity : ComponentActivity() {
 
             val pendingRemindersCount by viewModel.pendingRemindersCount.collectAsState()
 
+            // Determinar si usar tema oscuro según la preferencia del usuario
+            val darkTheme = when (themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
+
             CompositionLocalProvider(LocalUse12HourFormat provides use12Hour) {
-            AgendaPodologiaTheme {
+            AgendaPodologiaTheme(darkTheme = darkTheme) {
                 val snackbarHostState = remember { SnackbarHostState() }
                 var isErrorSnackbar by remember { mutableStateOf(false) }
 

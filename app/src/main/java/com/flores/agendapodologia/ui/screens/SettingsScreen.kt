@@ -10,8 +10,10 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +25,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.flores.agendapodologia.data.ThemeMode
 import com.flores.agendapodologia.data.UserPreferences
 import com.flores.agendapodologia.viewmodel.HomeViewModel
 
@@ -94,13 +97,12 @@ fun SettingsScreen(
             // ═══════════════════════════════════════════════════
             SettingsSectionHeader(title = "Apariencia")
 
-            // Tema de la app (placeholder)
-            SettingsItem(
-                icon = Icons.Default.DarkMode,
-                title = "Tema",
-                subtitle = "Seguir ajustes del sistema",
-                onClick = { /* TODO: Implementar selector de tema */ },
-                enabled = false
+            // Tema de la app (funcional)
+            val themeMode by userPreferences.themeMode.collectAsState()
+
+            ThemeSelector(
+                currentMode = themeMode,
+                onModeSelected = { userPreferences.setThemeMode(it) }
             )
 
             // ═══════════════════════════════════════════════════
@@ -137,7 +139,7 @@ fun SettingsScreen(
             SettingsItem(
                 icon = Icons.Default.Info,
                 title = "Versión de la app",
-                subtitle = "0.8",
+                subtitle = "0.9",
                 onClick = {},
                 showChevron = false
             )
@@ -285,6 +287,83 @@ private fun SettingsToggleItem(
                 checked = checked,
                 onCheckedChange = onCheckedChange
             )
+        }
+    }
+}
+
+/** Selector de tema con tres opciones: Automático, Claro, Oscuro. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemeSelector(
+    currentMode: ThemeMode,
+    onModeSelected: (ThemeMode) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Contrast,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "Tema",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = when (currentMode) {
+                            ThemeMode.SYSTEM -> "Automático (sistema)"
+                            ThemeMode.LIGHT -> "Claro"
+                            ThemeMode.DARK -> "Oscuro"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val options = listOf(
+                    Triple(ThemeMode.SYSTEM, "Automático", Icons.Default.Contrast),
+                    Triple(ThemeMode.LIGHT, "Claro", Icons.Default.LightMode),
+                    Triple(ThemeMode.DARK, "Oscuro", Icons.Default.DarkMode)
+                )
+                options.forEachIndexed { index, (mode, label, icon) ->
+                    SegmentedButton(
+                        selected = currentMode == mode,
+                        onClick = { onModeSelected(mode) },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = options.size
+                        ),
+                        icon = {
+                            SegmentedButtonDefaults.Icon(active = currentMode == mode) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SegmentedButtonDefaults.IconSize)
+                                )
+                            }
+                        }
+                    ) {
+                        Text(label, maxLines = 1)
+                    }
+                }
+            }
         }
     }
 }

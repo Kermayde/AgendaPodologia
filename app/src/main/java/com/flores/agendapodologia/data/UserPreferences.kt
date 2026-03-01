@@ -7,6 +7,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
+ * Modo de tema de la aplicación.
+ */
+enum class ThemeMode {
+    SYSTEM,  // Seguir ajustes del sistema (por defecto)
+    LIGHT,   // Siempre claro
+    DARK     // Siempre oscuro
+}
+
+/**
  * Preferencias locales del usuario almacenadas en SharedPreferences.
  * Cada dispositivo/usuario mantiene su propia configuración.
  */
@@ -15,6 +24,7 @@ class UserPreferences(context: Context) {
     companion object {
         private const val PREFS_NAME = "agenda_podologia_prefs"
         private const val KEY_USE_12_HOUR_FORMAT = "use_12_hour_format"
+        private const val KEY_THEME_MODE = "theme_mode"
 
         @Volatile
         private var instance: UserPreferences? = null
@@ -36,6 +46,17 @@ class UserPreferences(context: Context) {
     fun setUse12HourFormat(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_USE_12_HOUR_FORMAT, enabled).apply()
         _use12HourFormat.value = enabled
+    }
+
+    // ── Tema de la app ───────────────────────────────────────────
+    private val _themeMode = MutableStateFlow(
+        ThemeMode.entries.getOrElse(prefs.getInt(KEY_THEME_MODE, 0)) { ThemeMode.SYSTEM }
+    )
+    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+
+    fun setThemeMode(mode: ThemeMode) {
+        prefs.edit().putInt(KEY_THEME_MODE, mode.ordinal).apply()
+        _themeMode.value = mode
     }
 }
 
